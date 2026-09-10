@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { createApplication, getApplicationDefinition } from '../api/client'
+import {
+  createApplication,
+  getApplicationDefinition,
+  saveApplicationData,
+} from '../api/client'
 import DynamicForm from '../components/DynamicForm'
 
 function formatError(error) {
@@ -23,6 +27,8 @@ export default function NewApplicationPage() {
   const [values, setValues] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState(null)
 
   useEffect(() => {
     if (!customerId) {
@@ -65,6 +71,24 @@ export default function NewApplicationPage() {
     }
   }, [customerId, workflowKey])
 
+  async function handleSaveDraft() {
+    if (!application) {
+      return
+    }
+    setSaving(true)
+    setSaveMessage(null)
+    setError(null)
+    try {
+      const updated = await saveApplicationData(application.id, values)
+      setApplication(updated)
+      setSaveMessage('Draft saved.')
+    } catch (err) {
+      setError(formatError(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) {
     return <p>Loading application…</p>
   }
@@ -90,6 +114,12 @@ export default function NewApplicationPage() {
         v{application.workflowVersion} ({application.status})
       </p>
 
+      {saveMessage && (
+        <div className="alert alert-success" role="status">
+          {saveMessage}
+        </div>
+      )}
+
       <section className="panel">
         <DynamicForm
           definition={definition}
@@ -98,9 +128,19 @@ export default function NewApplicationPage() {
         />
       </section>
 
-      <Link to="/portal/customers" className="button">
-        Back to customers
-      </Link>
+      <div className="form-actions">
+        <button
+          type="button"
+          className="button button-primary"
+          onClick={handleSaveDraft}
+          disabled={saving}
+        >
+          {saving ? 'Saving…' : 'Save draft'}
+        </button>
+        <Link to="/portal/customers" className="button">
+          Back to customers
+        </Link>
+      </div>
     </div>
   )
 }

@@ -1,5 +1,7 @@
 package com.agentflow.common;
 
+import com.agentflow.application.ApplicationDataValidationException;
+import com.agentflow.application.ApplicationNotDraftException;
 import com.agentflow.application.ApplicationNotFoundException;
 import com.agentflow.customer.CustomerNotFoundException;
 import com.agentflow.customer.DuplicateEmailException;
@@ -55,6 +57,26 @@ public class GlobalExceptionHandler {
     ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
     pd.setTitle("Application not found");
     pd.setDetail("No application with id " + ex.getId());
+    return pd;
+  }
+
+  @ExceptionHandler(ApplicationDataValidationException.class)
+  ProblemDetail onApplicationDataValidation(ApplicationDataValidationException ex) {
+    ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+    pd.setTitle("Validation failed");
+    Map<String, String> errors =
+        ex.getErrors().stream()
+            .collect(Collectors.toMap(e -> e.field(), e -> e.message(), (a, b) -> a));
+    pd.setProperty("errors", errors);
+    return pd;
+  }
+
+  @ExceptionHandler(ApplicationNotDraftException.class)
+  ProblemDetail onApplicationNotDraft(ApplicationNotDraftException ex) {
+    ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+    pd.setTitle("Application not in draft");
+    pd.setDetail(
+        "Application " + ex.getId() + " cannot be modified in status " + ex.getStatus());
     return pd;
   }
 }

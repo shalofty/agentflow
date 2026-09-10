@@ -43,4 +43,12 @@ public class ApplicationData {
   public Instant getUpdatedAt() {
     return updatedAt;
   }
+
+  public void setPayload(String payload) {
+    this.payload = payload;
+  }
+
+  public void setUpdatedAt(Instant updatedAt) {
+    this.updatedAt = updatedAt;
+  }
 }

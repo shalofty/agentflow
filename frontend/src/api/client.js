@@ -50,3 +50,15 @@ export async function getApplicationDefinition(applicationId) {
   }
   return response.json()
 }
+
+export async function saveApplicationData(applicationId, payload) {
+  const response = await fetch(`/api/applications/${applicationId}/data`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ payload }),
+  })
+  if (!response.ok) {
+    throw await parseError(response)
+  }
+  return response.json()
+}
