@@ -154,12 +154,18 @@ export default function CustomersPage() {
                   <td>{customer.email}</td>
                   <td>{customer.phone || '—'}</td>
                   <td>{new Date(customer.createdAt).toLocaleString()}</td>
-                  <td>
+                  <td className="table-actions">
                     <Link
                       to={`/portal/applications/new?customerId=${customer.id}&workflowKey=auto-policy`}
                       className="button button-primary"
                     >
-                      New Auto Policy
+                      Auto Policy
+                    </Link>
+                    <Link
+                      to={`/portal/applications/new?customerId=${customer.id}&workflowKey=home-policy`}
+                      className="button button-primary"
+                    >
+                      Home Policy
                     </Link>
                   </td>
                 </tr>

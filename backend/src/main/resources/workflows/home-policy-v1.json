@@ -1,0 +1,52 @@
+{
+  "workflowKey": "home-policy",
+  "title": "New Home Policy",
+  "version": 1,
+  "fields": [
+    {
+      "name": "address",
+      "label": "Property Address",
+      "type": "text",
+      "required": true,
+      "validation": { "minLength": 5, "maxLength": 200 }
+    },
+    {
+      "name": "dwellingValue",
+      "label": "Dwelling Value",
+      "type": "number",
+      "required": true,
+      "validation": { "min": 50000, "max": 5000000 }
+    },
+    {
+      "name": "occupancyType",
+      "label": "Occupancy Type",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "OWNER_OCCUPIED", "label": "Owner Occupied" },
+        { "value": "TENANT", "label": "Tenant" },
+        { "value": "VACANT", "label": "Vacant" }
+      ]
+    },
+    {
+      "name": "hasSwimmingPool",
+      "label": "Swimming pool on property",
+      "type": "checkbox",
+      "required": false
+    },
+    {
+      "name": "effectiveDate",
+      "label": "Effective Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "replacementCost",
+      "label": "Replacement Cost",
+      "type": "number",
+      "required": true,
+      "visibleWhen": { "field": "occupancyType", "equals": "OWNER_OCCUPIED" },
+      "validation": { "min": 10000, "max": 2000000 }
+    }
+  ]
+}

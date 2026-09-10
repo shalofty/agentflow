@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   createApplication,
   getDemoConfiguration,
@@ -19,10 +19,23 @@ function formatError(error) {
   return error.message
 }
 
+const WORKFLOW_OPTIONS = [
+  { key: 'auto-policy', label: 'Auto' },
+  { key: 'home-policy', label: 'Home' },
+]
+
 export default function NewApplicationPage() {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const customerId = searchParams.get('customerId')
   const workflowKey = searchParams.get('workflowKey') ?? 'auto-policy'
+
+  function handleWorkflowChange(event) {
+    const nextWorkflowKey = event.target.value
+    const params = new URLSearchParams(searchParams)
+    params.set('workflowKey', nextWorkflowKey)
+    navigate(`/portal/applications/new?${params.toString()}`, { replace: true })
+  }
 
   const [application, setApplication] = useState(null)
   const [definition, setDefinition] = useState(null)
@@ -162,6 +175,22 @@ export default function NewApplicationPage() {
         Application {application.id.slice(0, 8)}… — {application.workflowKey}{' '}
         v{application.workflowVersion} ({application.status})
       </p>
+
+      <section className="panel workflow-picker">
+        <label htmlFor="workflow-key">Policy type</label>
+        <select
+          id="workflow-key"
+          value={workflowKey}
+          onChange={handleWorkflowChange}
+          disabled={application.status !== 'DRAFT'}
+        >
+          {WORKFLOW_OPTIONS.map((option) => (
+            <option key={option.key} value={option.key}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </section>
 
       {saveMessage && (
         <div className="alert alert-success" role="status">

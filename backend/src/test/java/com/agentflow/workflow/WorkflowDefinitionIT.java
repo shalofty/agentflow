@@ -43,6 +43,15 @@ class WorkflowDefinitionIT {
   }
 
   @Test
+  void seedsHomePolicyAndServesActiveDefinition() {
+    var res = rest.getForEntity("/api/workflows/home-policy", Map.class);
+    assertThat(res.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(res.getBody().get("workflowKey")).isEqualTo("home-policy");
+    assertThat(res.getBody().get("version")).isEqualTo(1);
+    assertThat(res.getBody().get("title")).isEqualTo("New Home Policy");
+  }
+
+  @Test
   void listsActiveWorkflowSummaries() {
     var res = rest.getForEntity("/api/workflows", List.class);
     assertThat(res.getStatusCode().is2xxSuccessful()).isTrue();
