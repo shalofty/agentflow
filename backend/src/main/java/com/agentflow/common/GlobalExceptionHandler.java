@@ -15,8 +15,11 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -95,6 +98,30 @@ public class GlobalExceptionHandler {
     ProblemDetail pd = problem(HttpStatus.CONFLICT);
     pd.setTitle("Application cannot be submitted");
     pd.setDetail(ex.getMessage());
+    return pd;
+  }
+
+  @ExceptionHandler(NoResourceFoundException.class)
+  ProblemDetail onNoResourceFound(NoResourceFoundException ex) {
+    ProblemDetail pd = problem(HttpStatus.NOT_FOUND);
+    pd.setTitle("Not found");
+    pd.setDetail("No endpoint matches this request");
+    return pd;
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  ProblemDetail onTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    ProblemDetail pd = problem(HttpStatus.BAD_REQUEST);
+    pd.setTitle("Invalid request parameter");
+    pd.setDetail("Invalid value for '" + ex.getName() + "'");
+    return pd;
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  ProblemDetail onMissingParameter(MissingServletRequestParameterException ex) {
+    ProblemDetail pd = problem(HttpStatus.BAD_REQUEST);
+    pd.setTitle("Missing request parameter");
+    pd.setDetail("Required parameter '" + ex.getParameterName() + "' is missing");
     return pd;
   }
 
