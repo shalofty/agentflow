@@ -103,8 +103,10 @@ Backend integration tests use Testcontainers, so Docker must be running:
 
 ```bash
 cd backend
-./mvnw test
+./mvnw verify
 ```
+
+Unit tests run through Surefire and `*IT` integration tests run through Failsafe during `verify`.
 
 Frontend:
 
