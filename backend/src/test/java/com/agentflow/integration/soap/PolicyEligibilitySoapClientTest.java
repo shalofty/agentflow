@@ -46,7 +46,9 @@ class PolicyEligibilitySoapClientTest {
     template.setUnmarshaller(marshaller);
     template.setDefaultUri(ENDPOINT);
     server = MockWebServiceServer.createServer(template);
-    client = new PolicyEligibilitySoapClient(template);
+    client =
+        new PolicyEligibilitySoapClient(
+            template, new com.agentflow.integration.config.IntegrationSecurityProperties(""));
   }
 
   @AfterEach
@@ -111,7 +113,9 @@ class PolicyEligibilitySoapClientTest {
                   Duration.ofMillis(100),
                   Duration.ofMillis(150));
       PolicyEligibilitySoapClient timeoutClient =
-          new PolicyEligibilitySoapClient(timeoutTemplate);
+          new PolicyEligibilitySoapClient(
+              timeoutTemplate,
+              new com.agentflow.integration.config.IntegrationSecurityProperties(""));
 
       assertTimeoutPreemptively(
           Duration.ofSeconds(2),

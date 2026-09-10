@@ -1,0 +1,12 @@
+{
+  "name": "agentflow-customer-verification-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --port 8791",
+    "local-server": "node local-server.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.0"
+  }
+}

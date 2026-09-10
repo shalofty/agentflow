@@ -1,5 +1,6 @@
 package com.agentflow.application;
 
+import com.agentflow.demo.DemoScenarioCapture;
 import com.agentflow.integration.RetryableIntegrationException;
 import com.agentflow.integration.activity.IntegrationActivity;
 import com.agentflow.integration.activity.IntegrationActivityService;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -40,6 +42,7 @@ public class ApplicationSubmitService {
   private final IntegrationActivityService activityService;
   private final ApplicationStateTransitions transitions;
   private final TransactionTemplate transactions;
+  private final ObjectProvider<DemoScenarioCapture> demoScenarioCapture;
   private final int maxAttempts;
   private final long retryBackoffMs;
 
@@ -54,6 +57,7 @@ public class ApplicationSubmitService {
       IntegrationActivityService activityService,
       ApplicationStateTransitions transitions,
       TransactionTemplate transactions,
+      ObjectProvider<DemoScenarioCapture> demoScenarioCapture,
       @Value("${agentflow.integrations.customer-verification.max-attempts:3}") int maxAttempts,
       @Value("${agentflow.integrations.customer-verification.retry-backoff-ms:100}") long retryBackoffMs) {
     this.applicationRepository = applicationRepository;
@@ -66,6 +70,7 @@ public class ApplicationSubmitService {
     this.activityService = activityService;
     this.transitions = transitions;
     this.transactions = transactions;
+    this.demoScenarioCapture = demoScenarioCapture;
     this.maxAttempts = maxAttempts;
     this.retryBackoffMs = retryBackoffMs;
   }
@@ -75,7 +80,10 @@ public class ApplicationSubmitService {
         "application_submit_start correlationId={} applicationId={}",
         correlationId,
         applicationId);
-    SubmitContext context = claimAndValidate(applicationId, correlationId);
+    // Resolve on the inbound request thread; never re-read ThreadLocal inside outbound clients.
+    DemoScenarioCapture capture = demoScenarioCapture.getIfAvailable();
+    String demoScenario = capture == null ? null : capture.peek().orElse(null);
+    SubmitContext context = claimAndValidate(applicationId, correlationId, demoScenario);
     updateStatus(applicationId, ApplicationStatus.CUSTOMER_VERIFICATION);
 
     CustomerVerificationResult verification = verifyCustomer(context);
@@ -94,7 +102,8 @@ public class ApplicationSubmitService {
     return complete(context, mapEligibility(eligibility));
   }
 
-  private SubmitContext claimAndValidate(UUID applicationId, String correlationId) {
+  private SubmitContext claimAndValidate(
+      UUID applicationId, String correlationId, String demoScenario) {
     return transactions.execute(
         ignored -> {
           Application application =
@@ -127,7 +136,8 @@ public class ApplicationSubmitService {
           application.setStatus(ApplicationStatus.SUBMITTED);
           application.setUpdatedAt(now);
           applicationRepository.save(application);
-          return new SubmitContext(applicationId, application.getCustomerId(), correlationId);
+          return new SubmitContext(
+              applicationId, application.getCustomerId(), correlationId, demoScenario);
         });
   }
 
@@ -153,7 +163,8 @@ public class ApplicationSubmitService {
       try {
         CustomerVerificationResult result =
             verificationClient.verify(
-                new VerifyCommand(context.customerId(), context.correlationId()));
+                new VerifyCommand(
+                    context.customerId(), context.correlationId(), context.demoScenario()));
         activityService.record(
             activity(
                 context,
@@ -192,7 +203,8 @@ public class ApplicationSubmitService {
                     context.applicationId(),
                     context.customerId(),
                     context.correlationId(),
-                    riskScore));
+                    riskScore,
+                    context.demoScenario()));
         activityService.record(
             activity(
                 context,
@@ -351,5 +363,6 @@ public class ApplicationSubmitService {
     };
   }
 
-  private record SubmitContext(UUID applicationId, UUID customerId, String correlationId) {}
+  private record SubmitContext(
+      UUID applicationId, UUID customerId, String correlationId, String demoScenario) {}
 }

@@ -15,6 +15,8 @@ server:
   port: 8080
 agentflow:
   integrations:
+    # Required against Cloudflare Worker mocks; leave empty for local Docker mocks.
+    mock-shared-secret: ${AGENTFLOW_MOCK_SHARED_SECRET:}
     customer-verification:
       base-url: http://localhost:8091
       connect-timeout-ms: 1000

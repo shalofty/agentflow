@@ -1,6 +1,5 @@
 package com.agentflow.demo;
 
-import com.agentflow.integration.RetryableIntegrationException;
 import com.agentflow.integration.eligibility.EligibilityCommand;
 import com.agentflow.integration.eligibility.EligibilityResult;
 import com.agentflow.integration.eligibility.PolicyEligibilityClient;
@@ -9,6 +8,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+/**
+ * Demo-profile primary bean. Always delegates so SOAP demo scenarios are applied by the mock /
+ * Worker from the explicit header on the command, not from ThreadLocal.
+ */
 @Primary
 @Component
 @Profile({"local", "demo"})
@@ -22,18 +25,6 @@ final class DemoPolicyEligibilityClient implements PolicyEligibilityClient {
 
   @Override
   public EligibilityResult check(EligibilityCommand command) {
-    return DemoScenarioContext.current()
-        .map(this::simulate)
-        .orElseGet(() -> delegate.check(command));
-  }
-
-  private EligibilityResult simulate(DemoScenario scenario) {
-    return switch (scenario) {
-      case SOAP_FAULT ->
-          throw new RetryableIntegrationException("Demo policy eligibility SOAP fault");
-      case SOAP_MANUAL_REVIEW -> EligibilityResult.MANUAL_REVIEW;
-      case REST_500, REST_TIMEOUT ->
-          throw new IllegalStateException("REST demo scenario reached SOAP integration");
-    };
+    return delegate.check(command);
   }
 }

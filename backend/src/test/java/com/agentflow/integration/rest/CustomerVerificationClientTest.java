@@ -24,7 +24,9 @@ class CustomerVerificationClientTest {
     server = new MockWebServer();
     server.start();
     WebClient webClient = WebClient.builder().baseUrl(server.url("/").toString()).build();
-    client = new CustomerVerificationClient(webClient);
+    client =
+        new CustomerVerificationClient(
+            webClient, new com.agentflow.integration.config.IntegrationSecurityProperties(""));
   }
 
   @AfterEach
@@ -53,6 +55,29 @@ class CustomerVerificationClientTest {
     var recorded = server.takeRequest();
     assertThat(recorded.getPath()).isEqualTo("/verify");
     assertThat(recorded.getHeader("X-Correlation-Id")).isEqualTo("corr-123");
+    assertThat(recorded.getHeader("X-AgentFlow-Mock-Key")).isNull();
+  }
+
+  @Test
+  void verifySendsMockKeyAndDemoScenarioWhenConfigured() throws InterruptedException {
+    server.enqueue(
+        new MockResponse()
+            .setBody(
+                "{\"customerId\":\""
+                    + UUID.randomUUID()
+                    + "\",\"verified\":true,\"riskScore\":27}")
+            .addHeader("Content-Type", "application/json"));
+
+    CustomerVerificationClient secured =
+        new CustomerVerificationClient(
+            WebClient.builder().baseUrl(server.url("/").toString()).build(),
+            new com.agentflow.integration.config.IntegrationSecurityProperties("sekret"));
+
+    secured.verify(new VerifyCommand(UUID.randomUUID(), "corr-sec", "rest-500"));
+
+    var recorded = server.takeRequest();
+    assertThat(recorded.getHeader("X-AgentFlow-Mock-Key")).isEqualTo("sekret");
+    assertThat(recorded.getHeader("X-AgentFlow-Demo-Scenario")).isEqualTo("rest-500");
   }
 
   @Test
@@ -95,7 +120,9 @@ class CustomerVerificationClientTest {
                     reactor.netty.http.client.HttpClient.create()
                         .responseTimeout(java.time.Duration.ofMillis(500))))
             .build();
-    CustomerVerificationClient slowClientWrapper = new CustomerVerificationClient(slowClient);
+    CustomerVerificationClient slowClientWrapper =
+        new CustomerVerificationClient(
+            slowClient, new com.agentflow.integration.config.IntegrationSecurityProperties(""));
 
     assertThatThrownBy(
             () -> slowClientWrapper.verify(new VerifyCommand(UUID.randomUUID(), "corr-timeout")))

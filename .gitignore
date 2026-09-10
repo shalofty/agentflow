@@ -5,14 +5,18 @@ __pycache__/
 
 # Build output
 target/
+frontend/dist/
 
-# Environment
+# Environment / secrets
 .env
+.dev.vars
+.deploy-secret
 
 # IDE
 .idea/
 *.iml
 .vscode/
+.cursor/
 *.swp
 *.swo
 *~
@@ -23,3 +27,6 @@ target/
 
 .venv/
 scripts/python/.venv/
+
+# Cloudflare / Wrangler
+.wrangler/

@@ -1,0 +1,4 @@
+# Local Worker secrets — copy from .dev.vars.example. Never commit real secrets.
+.dev.vars
+node_modules/
+.wrangler/

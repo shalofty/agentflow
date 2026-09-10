@@ -10,11 +10,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
 @Configuration
-@EnableConfigurationProperties(CustomerVerificationProperties.class)
+@EnableConfigurationProperties({
+  CustomerVerificationProperties.class,
+  IntegrationSecurityProperties.class
+})
 public class WebClientConfig {
 
   @Bean
-  WebClient customerVerificationWebClient(CustomerVerificationProperties properties) {
+  public WebClient customerVerificationWebClient(CustomerVerificationProperties properties) {
     HttpClient httpClient =
         HttpClient.create()
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.connectTimeoutMs())

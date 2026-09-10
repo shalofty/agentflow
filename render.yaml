@@ -1,0 +1,37 @@
+# AgentFlow — free-only Blueprint. No Render databases, disks, cron, or paid plans.
+# Schema: https://render.com/schema/render.yaml.json
+# Do not apply until deploy/DEPLOYMENT.md is approved.
+
+services:
+  - type: web
+    name: agentflow-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: master
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: demo
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:MaxRAMPercentage=75.0 -XX:+UseSerialGC"
+      # Set after Neon + Workers exist (Render Dashboard / MCP update_environment_variables):
+      # SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
+      # AGENTFLOW_MOCK_SHARED_SECRET
+      # AGENTFLOW_INTEGRATIONS_CUSTOMER_VERIFICATION_BASE_URL
+      # AGENTFLOW_INTEGRATIONS_POLICY_ELIGIBILITY_URL
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: AGENTFLOW_MOCK_SHARED_SECRET
+        sync: false
+      - key: AGENTFLOW_INTEGRATIONS_CUSTOMER_VERIFICATION_BASE_URL
+        sync: false
+      - key: AGENTFLOW_INTEGRATIONS_POLICY_ELIGIBILITY_URL
+        sync: false

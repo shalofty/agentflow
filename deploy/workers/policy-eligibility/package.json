@@ -1,0 +1,12 @@
+{
+  "name": "agentflow-policy-eligibility-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --port 8792",
+    "local-server": "node local-server.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.0"
+  }
+}

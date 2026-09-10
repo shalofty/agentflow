@@ -1,6 +1,7 @@
 const http = require("http");
 
 const PORT = process.env.PORT || 8091;
+const MOCK_SHARED_SECRET = process.env.AGENTFLOW_MOCK_SHARED_SECRET || "";
 let faultMode = "none";
 
 function readBody(req) {
@@ -16,6 +17,18 @@ function readBody(req) {
     });
     req.on("error", reject);
   });
+}
+
+function requireMockKey(req, res) {
+  if (!MOCK_SHARED_SECRET) {
+    return true;
+  }
+  if (req.headers["x-agentflow-mock-key"] !== MOCK_SHARED_SECRET) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Unauthorized" }));
+    return false;
+  }
+  return true;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -39,6 +52,10 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && req.url === "/verify") {
+    if (!requireMockKey(req, res)) {
+      return;
+    }
+
     let body;
     try {
       body = await readBody(req);
@@ -48,7 +65,8 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (faultMode === "http500") {
+    const scenario = (req.headers["x-agentflow-demo-scenario"] || "").toLowerCase();
+    if (scenario === "rest-500" || faultMode === "http500") {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Simulated internal error" }));
       return;
@@ -58,7 +76,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: "Simulated service unavailable" }));
       return;
     }
-    if (faultMode === "timeout") {
+    if (scenario === "rest-timeout" || faultMode === "timeout") {
       return;
     }
 

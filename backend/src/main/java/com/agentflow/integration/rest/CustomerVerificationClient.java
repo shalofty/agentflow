@@ -1,6 +1,7 @@
 package com.agentflow.integration.rest;
 
 import com.agentflow.integration.RetryableIntegrationException;
+import com.agentflow.integration.config.IntegrationSecurityProperties;
 import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.handler.timeout.TimeoutException;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,20 +15,41 @@ import reactor.core.publisher.Mono;
 @Component
 public class CustomerVerificationClient {
 
+  public static final String DEMO_SCENARIO_HEADER = "X-AgentFlow-Demo-Scenario";
+  public static final String MOCK_KEY_HEADER = "X-AgentFlow-Mock-Key";
+
   private final WebClient webClient;
+  private final IntegrationSecurityProperties securityProperties;
 
   public CustomerVerificationClient(
-      @Qualifier("customerVerificationWebClient") WebClient webClient) {
+      @Qualifier("customerVerificationWebClient") WebClient webClient,
+      IntegrationSecurityProperties securityProperties) {
     this.webClient = webClient;
+    this.securityProperties = securityProperties;
   }
 
   public CustomerVerificationResult verify(VerifyCommand command) {
+    // Resolve headers on the calling thread before entering WebClient/reactive machinery.
+    final String correlationId = command.correlationId();
+    final String demoScenario = command.demoScenario();
+    final String mockKey =
+        securityProperties.hasMockSharedSecret() ? securityProperties.mockSharedSecret() : null;
+
     try {
       VerifyResponse response =
           webClient
               .post()
               .uri("/verify")
-              .header("X-Correlation-Id", command.correlationId())
+              .headers(
+                  headers -> {
+                    headers.set("X-Correlation-Id", correlationId);
+                    if (mockKey != null) {
+                      headers.set(MOCK_KEY_HEADER, mockKey);
+                    }
+                    if (demoScenario != null && !demoScenario.isBlank()) {
+                      headers.set(DEMO_SCENARIO_HEADER, demoScenario);
+                    }
+                  })
               .bodyValue(new VerifyRequest(command.customerId()))
               .retrieve()
               .onStatus(

@@ -22,7 +22,7 @@ public class PolicyEligibilitySoapConfiguration {
   }
 
   @Bean
-  WebServiceTemplate policyEligibilityWebServiceTemplate(
+  public WebServiceTemplate policyEligibilityWebServiceTemplate(
       Jaxb2Marshaller policyEligibilityMarshaller,
       @Value("${agentflow.integrations.policy-eligibility.url:http://localhost:8092/ws}")
           String url,
