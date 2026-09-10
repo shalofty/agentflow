@@ -1,0 +1,205 @@
+{
+  "info": {
+    "_postman_id": "302b42d2-12f3-4b64-9ef9-a2a8c9b00a15",
+    "name": "AgentFlow",
+    "description": "AgentFlow MVP API, lifecycle, retry, failure-injection, and mock-admin demonstrations. Run Customers, Workflows, then Application lifecycle in order. A fresh draft application is required for every demo scenario.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Create customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Ada\",\n  \"lastName\": \"Lovelace\",\n  \"email\": \"postman-{{$timestamp}}@example.com\",\n  \"phone\": \"+442079460958\"\n}"
+            },
+            "url": "{{baseUrl}}/api/customers"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Created', () => pm.response.to.have.status(201));",
+                "pm.environment.set('customerId', pm.response.json().id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "List customers",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/customers" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get customer",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/customers/{{customerId}}" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Workflows",
+      "item": [
+        {
+          "name": "List active workflows",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/workflows" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get Auto Policy definition",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/workflows/auto-policy" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Definition is JSON-driven', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().definitionJson.fields).to.be.an('array'); });"] } }]
+        },
+        {
+          "name": "Get Home Policy definition",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/workflows/home-policy" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Application lifecycle",
+      "item": [
+        {
+          "name": "Create Auto application",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"workflowKey\": \"auto-policy\"\n}" },
+            "url": "{{baseUrl}}/api/applications"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Draft created', () => { pm.response.to.have.status(201); pm.expect(pm.response.json().status).to.eql('DRAFT'); });",
+                "pm.environment.set('applicationId', pm.response.json().id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Save application data",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"payload\": {\n    \"vin\": \"1HGCM82633A123456\",\n    \"vehicleYear\": 2024,\n    \"coverageType\": \"FULL\",\n    \"hasGarage\": true,\n    \"effectiveDate\": \"2026-10-01\",\n    \"coverageAmount\": 100000\n  }\n}" },
+            "url": "{{baseUrl}}/api/applications/{{applicationId}}/data"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Draft saved', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('DRAFT'); });"] } }]
+        },
+        {
+          "name": "Get application",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/applications/{{applicationId}}" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Get pinned definition",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/applications/{{applicationId}}/definition" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Pinned version returned', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().version).to.eql(1); });"] } }]
+        },
+        {
+          "name": "Submit application",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-Correlation-Id", "value": "postman-happy-path" }],
+            "url": "{{baseUrl}}/api/applications/{{applicationId}}/submit"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Approved', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('APPROVED'); });"] } }]
+        },
+        {
+          "name": "Get integration activities",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/applications/{{applicationId}}/activities" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('REST and SOAP activity recorded', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.have.lengthOf(2); });"] } }]
+        },
+        {
+          "name": "Double-submit returns 409",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/applications/{{applicationId}}/submit" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Conflict protects integrations', () => pm.response.to.have.status(409));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Demo profile scenarios",
+      "description": "Start the API with the local or demo profile. Before each request, create and save a fresh draft using the Application lifecycle requests.",
+      "item": [
+        {
+          "name": "Demo capabilities",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/demo/enabled" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Demo profile enabled', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Submit with REST 500",
+          "request": { "method": "POST", "header": [{ "key": "X-Demo-Scenario", "value": "rest-500" }], "url": "{{baseUrl}}/api/applications/{{applicationId}}/submit" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Retries exhausted', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('INTEGRATION_FAILURE'); });"] } }]
+        },
+        {
+          "name": "Submit with REST timeout",
+          "request": { "method": "POST", "header": [{ "key": "X-Demo-Scenario", "value": "rest-timeout" }], "url": "{{baseUrl}}/api/applications/{{applicationId}}/submit" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Retries exhausted', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('INTEGRATION_FAILURE'); });"] } }]
+        },
+        {
+          "name": "Submit with SOAP fault",
+          "request": { "method": "POST", "header": [{ "key": "X-Demo-Scenario", "value": "soap-fault" }], "url": "{{baseUrl}}/api/applications/{{applicationId}}/submit" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Retries exhausted', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('INTEGRATION_FAILURE'); });"] } }]
+        },
+        {
+          "name": "Submit with SOAP manual review",
+          "request": { "method": "POST", "header": [{ "key": "X-Demo-Scenario", "value": "soap-manual-review" }], "url": "{{baseUrl}}/api/applications/{{applicationId}}/submit" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Manual review', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('MANUAL_REVIEW'); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Mock administration",
+      "description": "Fault modes persist in each mock process until reset.",
+      "item": [
+        {
+          "name": "REST mock - reset",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"mode\": \"none\" }" }, "url": "{{mockRestUrl}}/admin/faults" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Reset', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "REST mock - HTTP 500",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"mode\": \"http500\" }" }, "url": "{{mockRestUrl}}/admin/faults" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Configured', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "REST mock - HTTP 503",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"mode\": \"http503\" }" }, "url": "{{mockRestUrl}}/admin/faults" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Configured', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "REST mock - timeout",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"mode\": \"timeout\" }" }, "url": "{{mockRestUrl}}/admin/faults" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Configured', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "SOAP mock - reset",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"mode\": \"none\" }" }, "url": "{{mockSoapUrl}}/admin/faults" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Reset', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "SOAP mock - fault",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"mode\": \"fault\" }" }, "url": "{{mockSoapUrl}}/admin/faults" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Configured', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "SOAP mock - manual review",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"mode\": \"manual_review\" }" }, "url": "{{mockSoapUrl}}/admin/faults" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Configured', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "mockRestUrl", "value": "http://localhost:8091" },
+    { "key": "mockSoapUrl", "value": "http://localhost:8092" }
+  ]
+}
