@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   createApplication,
+  getDemoConfiguration,
   getApplicationDefinition,
   saveApplicationData,
   submitApplication,
@@ -32,11 +33,31 @@ export default function NewApplicationPage() {
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [saveMessage, setSaveMessage] = useState(null)
+  const [demoConfiguration, setDemoConfiguration] = useState(null)
+  const [demoScenario, setDemoScenario] = useState('')
 
   function handleValuesChange(nextValues) {
     setValues(nextValues)
     setSaveError(null)
   }
+
+  useEffect(() => {
+    let cancelled = false
+    getDemoConfiguration()
+      .then((configuration) => {
+        if (!cancelled) {
+          setDemoConfiguration(configuration)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDemoConfiguration({ enabled: false, scenarios: [] })
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!customerId) {
@@ -107,7 +128,7 @@ export default function NewApplicationPage() {
     setSaveError(null)
     try {
       await saveApplicationData(application.id, values)
-      const submitted = await submitApplication(application.id)
+      const submitted = await submitApplication(application.id, demoScenario)
       setApplication(submitted)
       setSaveMessage(`Application submitted: ${submitted.status}. View integration activity below.`)
     } catch (err) {
@@ -166,6 +187,25 @@ export default function NewApplicationPage() {
           onChange={handleValuesChange}
         />
       </section>
+
+      {demoConfiguration?.enabled && (
+        <section className="panel">
+          <h2>Demo failure injection</h2>
+          <label htmlFor="demo-scenario">Submit scenario</label>
+          <select
+            id="demo-scenario"
+            value={demoScenario}
+            onChange={(event) => setDemoScenario(event.target.value)}
+          >
+            <option value="">Normal integrations</option>
+            {demoConfiguration.scenarios.map((scenario) => (
+              <option key={scenario} value={scenario}>
+                {scenario}
+              </option>
+            ))}
+          </select>
+        </section>
+      )}
 
       <div className="form-actions">
         <button

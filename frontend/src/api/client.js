@@ -63,10 +63,22 @@ export async function saveApplicationData(applicationId, payload) {
   return response.json()
 }
 
-export async function submitApplication(applicationId) {
+export async function submitApplication(applicationId, demoScenario) {
   const response = await fetch(`/api/applications/${applicationId}/submit`, {
     method: 'POST',
+    headers: demoScenario ? { 'X-Demo-Scenario': demoScenario } : {},
   })
+  if (!response.ok) {
+    throw await parseError(response)
+  }
+  return response.json()
+}
+
+export async function getDemoConfiguration() {
+  const response = await fetch('/api/demo/enabled')
+  if (response.status === 404) {
+    return { enabled: false, scenarios: [] }
+  }
   if (!response.ok) {
     throw await parseError(response)
   }
