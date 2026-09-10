@@ -57,6 +57,62 @@ class FormDefinitionValidatorTest {
     assertThat(errors).noneMatch(e -> e.field().equals("coverageAmount"));
   }
 
+  @Test
+  void rejectsSelectValueNotPresentInOptions() throws IOException {
+    var errors =
+        validator.validate(
+            loadAutoDefinition(),
+            Map.of(
+                "vin", "1HGCM82633A123456",
+                "vehicleYear", 2020,
+                "coverageType", "UNKNOWN",
+                "hasGarage", false,
+                "effectiveDate", "2026-01-01"));
+
+    assertThat(errors)
+        .anyMatch(
+            error ->
+                error.field().equals("coverageType")
+                    && error.message().equals("Must be one of the configured options"));
+  }
+
+  @Test
+  void rejectsDateThatIsNotAnIsoLocalDate() throws IOException {
+    var errors =
+        validator.validate(
+            loadAutoDefinition(),
+            Map.of(
+                "vin", "1HGCM82633A123456",
+                "vehicleYear", 2020,
+                "coverageType", "LIABILITY",
+                "hasGarage", false,
+                "effectiveDate", "01/31/2026"));
+
+    assertThat(errors)
+        .anyMatch(
+            error ->
+                error.field().equals("effectiveDate")
+                    && error.message().equals("Must be a valid ISO date"));
+  }
+
+  @Test
+  void acceptsValidSelectAndIsoLocalDate() throws IOException {
+    var errors =
+        validator.validate(
+            loadAutoDefinition(),
+            Map.of(
+                "vin", "1HGCM82633A123456",
+                "vehicleYear", 2020,
+                "coverageType", "LIABILITY",
+                "hasGarage", false,
+                "effectiveDate", "2026-01-31"));
+
+    assertThat(errors)
+        .noneMatch(
+            error ->
+                error.field().equals("coverageType") || error.field().equals("effectiveDate"));
+  }
+
   private Map<String, Object> loadAutoDefinition() throws IOException {
     try (var in = new ClassPathResource("workflows/auto-policy-v1.json").getInputStream()) {
       return objectMapper.readValue(in, Map.class);

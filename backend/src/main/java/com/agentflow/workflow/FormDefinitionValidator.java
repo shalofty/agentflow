@@ -2,6 +2,8 @@ package com.agentflow.workflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -62,15 +64,44 @@ public class FormDefinitionValidator {
   private void validateFieldValue(
       JsonNode field, String name, Object value, List<ValidationError> errors) {
     var validation = field.get("validation");
-    if (validation == null || validation.isNull()) {
-      return;
-    }
-
     var type = field.get("type").asText();
     switch (type) {
-      case "text" -> validateText(validation, name, value, errors);
-      case "number" -> validateNumber(validation, name, value, errors);
+      case "text" -> {
+        if (validation != null && !validation.isNull()) {
+          validateText(validation, name, value, errors);
+        }
+      }
+      case "number" -> {
+        if (validation != null && !validation.isNull()) {
+          validateNumber(validation, name, value, errors);
+        }
+      }
+      case "select" -> validateSelect(field, name, value, errors);
+      case "date" -> validateDate(name, value, errors);
       default -> {}
+    }
+  }
+
+  private void validateSelect(
+      JsonNode field, String name, Object value, List<ValidationError> errors) {
+    var options = field.get("options");
+    boolean valid =
+        options != null
+            && options.isArray()
+            && java.util.stream.StreamSupport.stream(options.spliterator(), false)
+                .map(option -> option.get("value"))
+                .filter(java.util.Objects::nonNull)
+                .anyMatch(optionValue -> valuesEqual(value, optionValue));
+    if (!valid) {
+      errors.add(new ValidationError(name, "Must be one of the configured options"));
+    }
+  }
+
+  private void validateDate(String name, Object value, List<ValidationError> errors) {
+    try {
+      LocalDate.parse(String.valueOf(value));
+    } catch (DateTimeParseException ex) {
+      errors.add(new ValidationError(name, "Must be a valid ISO date"));
     }
   }
 
