@@ -3,6 +3,7 @@ package com.agentflow.workflow;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,15 @@ public class WorkflowDefinitionService {
         repository
             .findByWorkflowKeyAndActiveTrue(key)
             .orElseThrow(() -> new WorkflowNotFoundException(key));
+    return WorkflowDetailResponse.from(definition, parseDefinitionJson(definition));
+  }
+
+  @Transactional(readOnly = true)
+  public WorkflowDetailResponse getById(UUID id) {
+    var definition =
+        repository
+            .findById(id)
+            .orElseThrow(() -> new IllegalStateException("Workflow definition not found: " + id));
     return WorkflowDetailResponse.from(definition, parseDefinitionJson(definition));
   }
 

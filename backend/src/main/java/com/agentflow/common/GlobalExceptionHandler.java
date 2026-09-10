@@ -1,5 +1,6 @@
 package com.agentflow.common;
 
+import com.agentflow.application.ApplicationNotFoundException;
 import com.agentflow.customer.CustomerNotFoundException;
 import com.agentflow.customer.DuplicateEmailException;
 import com.agentflow.workflow.WorkflowNotFoundException;
@@ -46,6 +47,14 @@ public class GlobalExceptionHandler {
     ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
     pd.setTitle("Workflow not found");
     pd.setDetail("No active workflow definition for key " + ex.getWorkflowKey());
+    return pd;
+  }
+
+  @ExceptionHandler(ApplicationNotFoundException.class)
+  ProblemDetail onApplicationNotFound(ApplicationNotFoundException ex) {
+    ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
+    pd.setTitle("Application not found");
+    pd.setDetail("No application with id " + ex.getId());
     return pd;
   }
 }
