@@ -1,0 +1,6 @@
+agentflow:
+  integrations:
+    customer-verification:
+      base-url: http://localhost:8091
+      connect-timeout-ms: 1000
+      read-timeout-ms: 2000
