@@ -189,11 +189,25 @@ code {
   font-size: 0.9rem;
 }
 
-.customer-form input {
+.customer-form input,
+.dynamic-form input,
+.dynamic-form select {
   padding: 0.45rem 0.5rem;
   border: 1px solid #a1a1aa;
   border-radius: 4px;
   font: inherit;
+}
+
+.dynamic-form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 420px;
+}
+
+.dynamic-form label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9rem;
 }
 
 .alert {

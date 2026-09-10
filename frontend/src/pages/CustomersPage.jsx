@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { createCustomer, listCustomers } from '../api/client'
 
 const emptyForm = {
@@ -141,6 +142,7 @@ export default function CustomersPage() {
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Created</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -152,6 +154,14 @@ export default function CustomersPage() {
                   <td>{customer.email}</td>
                   <td>{customer.phone || '—'}</td>
                   <td>{new Date(customer.createdAt).toLocaleString()}</td>
+                  <td>
+                    <Link
+                      to={`/portal/applications/new?customerId=${customer.id}&workflowKey=auto-policy`}
+                      className="button button-primary"
+                    >
+                      New Auto Policy
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

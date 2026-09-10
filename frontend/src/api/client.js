@@ -30,3 +30,23 @@ export async function createCustomer(customer) {
   }
   return response.json()
 }
+
+export async function createApplication({ customerId, workflowKey }) {
+  const response = await fetch('/api/applications', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customerId, workflowKey }),
+  })
+  if (!response.ok) {
+    throw await parseError(response)
+  }
+  return response.json()
+}
+
+export async function getApplicationDefinition(applicationId) {
+  const response = await fetch(`/api/applications/${applicationId}/definition`)
+  if (!response.ok) {
+    throw await parseError(response)
+  }
+  return response.json()
+}
