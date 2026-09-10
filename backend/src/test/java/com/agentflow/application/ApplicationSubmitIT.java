@@ -95,6 +95,12 @@ class ApplicationSubmitIT {
 
     var activities = getActivities(appId);
     assertThat(activities)
+        .extracting(row -> row.get("integration"))
+        .containsExactly("CustomerVerification", "PolicyEligibility");
+    assertThat(activities)
+        .extracting(row -> row.get("integrationType"))
+        .containsExactly("REST", "SOAP");
+    assertThat(activities)
         .extracting(row -> row.get("status"))
         .containsExactly("SUCCESS", "SUCCESS");
     assertThat(activities).extracting(row -> row.get("attempt")).containsExactly(1, 1);
