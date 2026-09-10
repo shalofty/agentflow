@@ -21,10 +21,31 @@ class FormDefinitionValidatorTest {
   }
 
   @Test
-  void requiresVin() throws IOException {
+  void draftSaveAllowsIncompletePayload() throws IOException {
     var def = loadAutoDefinition();
-    var errors = validator.validate(def, Map.of("coverageType", "LIABILITY"));
-    assertThat(errors).anyMatch(e -> e.field().equals("vin"));
+    var errors =
+        validator.validate(def, Map.of("coverageType", "LIABILITY"), false);
+    assertThat(errors).isEmpty();
+  }
+
+  @Test
+  void draftSaveStillRejectsInvalidSuppliedValues() throws IOException {
+    var def = loadAutoDefinition();
+    var errors =
+        validator.validate(def, Map.of("vehicleYear", "not-a-number"), false);
+    assertThat(errors).anyMatch(e -> e.field().equals("vehicleYear"));
+  }
+
+  @Test
+  void validationErrorsIncludeHumanLabels() throws IOException {
+    var def = loadAutoDefinition();
+    var errors = validator.validate(def, Map.of());
+    assertThat(errors)
+        .filteredOn(e -> e.field().equals("vin"))
+        .first()
+        .extracting(ValidationError::displayLabel)
+        .asString()
+        .isNotEqualTo("vin");
   }
 
   @Test

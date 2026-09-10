@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { createCustomer, listCustomers } from '../api/client'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  createApplication,
+  createCustomer,
+  formatApiError,
+  listApplications,
+  listCustomers,
+} from '../api/client'
 
 const emptyForm = {
   firstName: '',
@@ -9,21 +15,33 @@ const emptyForm = {
   phone: '',
 }
 
-function formatError(error) {
-  if (error.problem?.errors) {
-    const fields = Object.entries(error.problem.errors)
-      .map(([field, message]) => `${field}: ${message}`)
-      .join('; ')
-    return `${error.message} (${fields})`
+const WORKFLOW_OPTIONS = [
+  { key: 'auto-policy', label: 'Auto Policy' },
+  { key: 'home-policy', label: 'Home Policy' },
+]
+
+function sampleCustomer() {
+  const stamp = Date.now().toString(36)
+  return {
+    firstName: 'Demo',
+    lastName: 'Agent',
+    email: `demo.agent.${stamp}@example.com`,
+    phone: '2025550100',
   }
-  return error.message
+}
+
+function workflowLabel(key) {
+  return WORKFLOW_OPTIONS.find((option) => option.key === key)?.label || key
 }
 
 export default function CustomersPage() {
+  const navigate = useNavigate()
   const [customers, setCustomers] = useState([])
+  const [applicationsByCustomer, setApplicationsByCustomer] = useState({})
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [creatingFor, setCreatingFor] = useState(null)
   const [error, setError] = useState(null)
 
   const loadCustomers = useCallback(async () => {
@@ -32,8 +50,19 @@ export default function CustomersPage() {
     try {
       const data = await listCustomers()
       setCustomers(data)
+      const entries = await Promise.all(
+        data.map(async (customer) => {
+          try {
+            const apps = await listApplications(customer.id)
+            return [customer.id, apps]
+          } catch {
+            return [customer.id, []]
+          }
+        }),
+      )
+      setApplicationsByCustomer(Object.fromEntries(entries))
     } catch (err) {
-      setError(formatError(err))
+      setError(formatApiError(err))
     } finally {
       setLoading(false)
     }
@@ -46,6 +75,11 @@ export default function CustomersPage() {
   function handleChange(event) {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  function fillSampleData() {
+    setForm(sampleCustomer())
+    setError(null)
   }
 
   async function handleSubmit(event) {
@@ -63,9 +97,22 @@ export default function CustomersPage() {
       setForm(emptyForm)
       await loadCustomers()
     } catch (err) {
-      setError(formatError(err))
+      setError(formatApiError(err))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function startApplication(customerId, workflowKey) {
+    const createKey = `${customerId}:${workflowKey}`
+    setCreatingFor(createKey)
+    setError(null)
+    try {
+      const created = await createApplication({ customerId, workflowKey })
+      navigate(`/portal/applications/${created.id}/edit`)
+    } catch (err) {
+      setError(formatApiError(err))
+      setCreatingFor(null)
     }
   }
 
@@ -76,6 +123,15 @@ export default function CustomersPage() {
         Select or create a customer before starting a policy application.
       </p>
 
+      <div className="alert alert-warning demo-boundary" role="note">
+        <strong>Shared public demo — use synthetic data only.</strong>
+        <p>
+          Do not enter real personal information. This portal has no sign-in;
+          data may be visible to other visitors. Prefer the sample-data button
+          below.
+        </p>
+      </div>
+
       {error && (
         <div className="alert alert-error" role="alert">
           {error}
@@ -85,27 +141,30 @@ export default function CustomersPage() {
       <section className="panel">
         <h2>Create customer</h2>
         <form className="customer-form" onSubmit={handleSubmit}>
-          <label>
+          <label htmlFor="firstName">
             First name
             <input
+              id="firstName"
               name="firstName"
               value={form.firstName}
               onChange={handleChange}
               required
             />
           </label>
-          <label>
+          <label htmlFor="lastName">
             Last name
             <input
+              id="lastName"
               name="lastName"
               value={form.lastName}
               onChange={handleChange}
               required
             />
           </label>
-          <label>
+          <label htmlFor="email">
             Email
             <input
+              id="email"
               name="email"
               type="email"
               value={form.email}
@@ -113,18 +172,24 @@ export default function CustomersPage() {
               required
             />
           </label>
-          <label>
-            Phone
+          <label htmlFor="phone">
+            Phone (optional)
             <input
+              id="phone"
               name="phone"
               type="tel"
               value={form.phone}
               onChange={handleChange}
             />
           </label>
-          <button type="submit" className="button" disabled={submitting}>
-            {submitting ? 'Creating…' : 'Create customer'}
-          </button>
+          <div className="form-actions inline-actions">
+            <button type="button" className="button" onClick={fillSampleData}>
+              Fill sample data
+            </button>
+            <button type="submit" className="button button-primary" disabled={submitting}>
+              {submitting ? 'Creating…' : 'Create customer'}
+            </button>
+          </div>
         </form>
       </section>
 
@@ -133,45 +198,82 @@ export default function CustomersPage() {
         {loading ? (
           <p>Loading customers…</p>
         ) : customers.length === 0 ? (
-          <p>No customers yet.</p>
+          <p>No customers yet. Create one with synthetic data to begin.</p>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((customer) => (
-                <tr key={customer.id}>
-                  <td>
-                    {customer.firstName} {customer.lastName}
-                  </td>
-                  <td>{customer.email}</td>
-                  <td>{customer.phone || '—'}</td>
-                  <td>{new Date(customer.createdAt).toLocaleString()}</td>
-                  <td className="table-actions">
-                    <Link
-                      to={`/portal/applications/new?customerId=${customer.id}&workflowKey=auto-policy`}
-                      className="button button-primary"
-                    >
-                      Auto Policy
-                    </Link>
-                    <Link
-                      to={`/portal/applications/new?customerId=${customer.id}&workflowKey=home-policy`}
-                      className="button button-primary"
-                    >
-                      Home Policy
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="customer-cards">
+            {customers.map((customer) => {
+              const apps = applicationsByCustomer[customer.id] || []
+              return (
+                <article key={customer.id} className="customer-card">
+                  <header>
+                    <h3>
+                      {customer.firstName} {customer.lastName}
+                    </h3>
+                    <p>
+                      {customer.email}
+                      {customer.phone ? ` · ${customer.phone}` : ''}
+                    </p>
+                    <p className="muted">
+                      Created {new Date(customer.createdAt).toLocaleString()}
+                    </p>
+                  </header>
+
+                  <div className="customer-start-actions">
+                    {WORKFLOW_OPTIONS.map((option) => {
+                      const createKey = `${customer.id}:${option.key}`
+                      return (
+                        <button
+                          key={option.key}
+                          type="button"
+                          className="button button-primary"
+                          disabled={Boolean(creatingFor)}
+                          onClick={() => startApplication(customer.id, option.key)}
+                        >
+                          {creatingFor === createKey
+                            ? 'Starting…'
+                            : `New ${option.label}`}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="customer-applications">
+                    <h4>Applications</h4>
+                    {apps.length === 0 ? (
+                      <p className="muted">No applications yet.</p>
+                    ) : (
+                      <ul className="application-list">
+                        {apps.map((app) => (
+                          <li key={app.id}>
+                            <span>
+                              <code>{app.id.slice(0, 8)}</code>…{' '}
+                              {workflowLabel(app.workflowKey)} v{app.workflowVersion}{' '}
+                              — {app.status}
+                            </span>
+                            {app.status === 'DRAFT' ? (
+                              <Link
+                                to={`/portal/applications/${app.id}/edit`}
+                                className="button button-primary"
+                              >
+                                Resume
+                              </Link>
+                            ) : (
+                              <Link
+                                to={`/portal/applications/${app.id}`}
+                                className="button"
+                              >
+                                View
+                              </Link>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
         )}
       </section>
     </div>

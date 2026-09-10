@@ -19,7 +19,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 class ApplicationDataIT {
 
   @Container
@@ -41,7 +41,7 @@ class ApplicationDataIT {
   @Autowired TransactionTemplate transactionTemplate;
 
   @Test
-  void rejectsSaveWhenRequiredFieldMissing() {
+  void allowsIncompleteDraftSave() {
     var customerId = createCustomer();
     var appId = createApplication(customerId);
 
@@ -52,10 +52,26 @@ class ApplicationDataIT {
             new HttpEntity<>(Map.of("payload", Map.of("coverageType", "LIABILITY"))),
             Map.class);
 
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody().get("status")).isEqualTo("DRAFT");
+  }
+
+  @Test
+  void rejectsInvalidSuppliedDraftValue() {
+    var customerId = createCustomer();
+    var appId = createApplication(customerId);
+
+    var response =
+        rest.exchange(
+            "/api/applications/" + appId + "/data",
+            HttpMethod.PUT,
+            new HttpEntity<>(Map.of("payload", Map.of("vehicleYear", "not-a-number"))),
+            Map.class);
+
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     @SuppressWarnings("unchecked")
     var errors = (Map<String, String>) response.getBody().get("errors");
-    assertThat(errors).containsKey("vin");
+    assertThat(errors).containsKey("vehicleYear");
   }
 
   @Test

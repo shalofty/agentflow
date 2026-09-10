@@ -18,12 +18,27 @@ public class FormDefinitionValidator {
     this.objectMapper = objectMapper;
   }
 
+  /** Full validation including required fields (used at submit). */
   public List<ValidationError> validate(Map<String, Object> definition, Map<String, ?> payload) {
+    return validate(definition, payload, true);
+  }
+
+  /**
+   * @param requireComplete when false, blank required fields are allowed (draft saves); supplied
+   *     values are still type/format validated.
+   */
+  public List<ValidationError> validate(
+      Map<String, Object> definition, Map<String, ?> payload, boolean requireComplete) {
     JsonNode definitionNode = objectMapper.valueToTree(definition);
-    return validateNode(definitionNode, payload);
+    return validateNode(definitionNode, payload, requireComplete);
   }
 
   public List<ValidationError> validateNode(JsonNode definition, Map<String, ?> payload) {
+    return validateNode(definition, payload, true);
+  }
+
+  public List<ValidationError> validateNode(
+      JsonNode definition, Map<String, ?> payload, boolean requireComplete) {
     var errors = new ArrayList<ValidationError>();
     var fields = definition.get("fields");
     if (fields == null || !fields.isArray()) {
@@ -32,18 +47,19 @@ public class FormDefinitionValidator {
 
     for (var field : fields) {
       var name = field.get("name").asText();
+      var label = field.path("label").asText(name);
       if (!isVisible(field, payload)) {
         continue;
       }
 
       var value = payload.get(name);
-      if (field.path("required").asBoolean(false) && isBlank(value)) {
-        errors.add(new ValidationError(name, "Field is required"));
+      if (requireComplete && field.path("required").asBoolean(false) && isBlank(value)) {
+        errors.add(new ValidationError(name, label, "Field is required"));
         continue;
       }
 
       if (!isBlank(value)) {
-        validateFieldValue(field, name, value, errors);
+        validateFieldValue(field, name, label, value, errors);
       }
     }
 
@@ -62,28 +78,36 @@ public class FormDefinitionValidator {
   }
 
   private void validateFieldValue(
-      JsonNode field, String name, Object value, List<ValidationError> errors) {
+      JsonNode field,
+      String name,
+      String label,
+      Object value,
+      List<ValidationError> errors) {
     var validation = field.get("validation");
     var type = field.get("type").asText();
     switch (type) {
       case "text" -> {
         if (validation != null && !validation.isNull()) {
-          validateText(validation, name, value, errors);
+          validateText(validation, name, label, value, errors);
         }
       }
       case "number" -> {
         if (validation != null && !validation.isNull()) {
-          validateNumber(validation, name, value, errors);
+          validateNumber(validation, name, label, value, errors);
         }
       }
-      case "select" -> validateSelect(field, name, value, errors);
-      case "date" -> validateDate(name, value, errors);
+      case "select" -> validateSelect(field, name, label, value, errors);
+      case "date" -> validateDate(name, label, value, errors);
       default -> {}
     }
   }
 
   private void validateSelect(
-      JsonNode field, String name, Object value, List<ValidationError> errors) {
+      JsonNode field,
+      String name,
+      String label,
+      Object value,
+      List<ValidationError> errors) {
     var options = field.get("options");
     boolean valid =
         options != null
@@ -93,52 +117,61 @@ public class FormDefinitionValidator {
                 .filter(java.util.Objects::nonNull)
                 .anyMatch(optionValue -> valuesEqual(value, optionValue));
     if (!valid) {
-      errors.add(new ValidationError(name, "Must be one of the configured options"));
+      errors.add(new ValidationError(name, label, "Must be one of the configured options"));
     }
   }
 
-  private void validateDate(String name, Object value, List<ValidationError> errors) {
+  private void validateDate(
+      String name, String label, Object value, List<ValidationError> errors) {
     try {
       LocalDate.parse(String.valueOf(value));
     } catch (DateTimeParseException ex) {
-      errors.add(new ValidationError(name, "Must be a valid ISO date"));
+      errors.add(new ValidationError(name, label, "Must be a valid ISO date"));
     }
   }
 
   private void validateText(
-      JsonNode validation, String name, Object value, List<ValidationError> errors) {
+      JsonNode validation,
+      String name,
+      String label,
+      Object value,
+      List<ValidationError> errors) {
     var text = String.valueOf(value);
     if (validation.has("minLength")) {
       int min = validation.get("minLength").asInt();
       if (text.length() < min) {
-        errors.add(new ValidationError(name, "Must be at least " + min + " characters"));
+        errors.add(new ValidationError(name, label, "Must be at least " + min + " characters"));
       }
     }
     if (validation.has("maxLength")) {
       int max = validation.get("maxLength").asInt();
       if (text.length() > max) {
-        errors.add(new ValidationError(name, "Must be at most " + max + " characters"));
+        errors.add(new ValidationError(name, label, "Must be at most " + max + " characters"));
       }
     }
   }
 
   private void validateNumber(
-      JsonNode validation, String name, Object value, List<ValidationError> errors) {
+      JsonNode validation,
+      String name,
+      String label,
+      Object value,
+      List<ValidationError> errors) {
     Double number = toDouble(value);
     if (number == null) {
-      errors.add(new ValidationError(name, "Must be a number"));
+      errors.add(new ValidationError(name, label, "Must be a number"));
       return;
     }
     if (validation.has("min")) {
       double min = validation.get("min").asDouble();
       if (number < min) {
-        errors.add(new ValidationError(name, "Must be at least " + min));
+        errors.add(new ValidationError(name, label, "Must be at least " + min));
       }
     }
     if (validation.has("max")) {
       double max = validation.get("max").asDouble();
       if (number > max) {
-        errors.add(new ValidationError(name, "Must be at most " + max));
+        errors.add(new ValidationError(name, label, "Must be at most " + max));
       }
     }
   }

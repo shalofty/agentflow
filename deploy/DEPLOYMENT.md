@@ -18,16 +18,16 @@ Budget: **$0 recurring.** No paid plans, disks, cron jobs, or Render Postgres.
 ## Topology
 
 ```text
-Cloudflare Pages (agentflow-95x) + /api proxy Function
-Cloudflare Worker: agentflow-customer-verification
-Cloudflare Worker: agentflow-policy-eligibility
-        │
-        ▼
-Render Free web service: agentflow-api
-        │
-        ▼
-Neon Free project: agentflow
+Browser
+  → Cloudflare Pages (agentflow-95x SPA)
+      + Pages Function /api/* proxy
+        → Render Free web service: agentflow-api
+            → Neon Free project: agentflow
+            → Cloudflare Worker: agentflow-customer-verification (REST)
+            → Cloudflare Worker: agentflow-policy-eligibility (SOAP)
 ```
+
+The Workers are **outbound** dependencies of the Render API (not callers into Render). The Pages Function only proxies browser `/api` traffic to Render.
 
 ## Verified
 
