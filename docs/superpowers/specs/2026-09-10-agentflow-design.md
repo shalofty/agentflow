@@ -1,7 +1,7 @@
 # AgentFlow Design Spec
 
 **Date:** 2026-09-10  
-**Status:** Revised — pending re-approval before implementation planning  
+**Status:** Approved — implementation plan in `docs/superpowers/plans/2026-09-10-agentflow-implementation.md`  
 **Type:** Portfolio modular monolith — insurance agent implementation portal
 
 ## 1. Purpose
