@@ -27,8 +27,14 @@ export default function NewApplicationPage() {
   const [values, setValues] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [saveError, setSaveError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState(null)
+
+  function handleValuesChange(nextValues) {
+    setValues(nextValues)
+    setSaveError(null)
+  }
 
   useEffect(() => {
     if (!customerId) {
@@ -77,13 +83,14 @@ export default function NewApplicationPage() {
     }
     setSaving(true)
     setSaveMessage(null)
-    setError(null)
+    setSaveError(null)
     try {
       const updated = await saveApplicationData(application.id, values)
       setApplication(updated)
       setSaveMessage('Draft saved.')
+      setSaveError(null)
     } catch (err) {
-      setError(formatError(err))
+      setSaveError(formatError(err))
     } finally {
       setSaving(false)
     }
@@ -120,11 +127,17 @@ export default function NewApplicationPage() {
         </div>
       )}
 
+      {saveError && (
+        <div className="alert alert-error" role="alert">
+          {saveError}
+        </div>
+      )}
+
       <section className="panel">
         <DynamicForm
           definition={definition}
           values={values}
-          onChange={setValues}
+          onChange={handleValuesChange}
         />
       </section>
 
