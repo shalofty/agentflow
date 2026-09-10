@@ -4,4 +4,4 @@ compatibility_date = "2024-09-01"
 
 # MOCK_SHARED_SECRET via `wrangler secret put`. SOAP_PUBLIC_BASE_URL = deployed HTTPS origin.
 [vars]
-SOAP_PUBLIC_BASE_URL = "http://127.0.0.1:8792"
+SOAP_PUBLIC_BASE_URL = "https://agentflow-policy-eligibility.stephanhaloftis.workers.dev"
