@@ -20,3 +20,6 @@ target/
 
 # Superpowers local state
 .superpowers/
+
+.venv/
+scripts/python/.venv/
