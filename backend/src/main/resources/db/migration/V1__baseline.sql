@@ -1,0 +1,1 @@
+-- AgentFlow Flyway baseline (no domain tables yet)

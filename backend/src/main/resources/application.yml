@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: agentflow-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/agentflow
+    username: agentflow
+    password: agentflow
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+server:
+  port: 8080
