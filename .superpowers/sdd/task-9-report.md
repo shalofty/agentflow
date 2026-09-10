@@ -18,3 +18,13 @@ Verification:
 
 Concern: Run `ApplicationSubmitIT` with Docker available before release to execute the full HTTP,
 Flyway, PostgreSQL, and MockWebServer path.
+
+## Task 9 review fix (integration name + httpStatus)
+
+- `ApplicationSubmitIT.retryableFailuresCreateFailedRowsBeforeSuccess`: filter now uses
+  `"CustomerVerification"` (matches `ApplicationSubmitService` activity records); asserts
+  `httpStatus` 503/500/200 on verification attempts.
+- `RetryableIntegrationException` carries optional `httpStatus`; `CustomerVerificationClient`
+  sets it for 5xx responses; `ApplicationSubmitService.recordFailure` persists it on FAILED rows.
+- Focused unit tests: `mvn test -Dtest=CustomerVerificationClientTest,FormDefinitionValidatorTest`
+  — 7 passed (no Docker).

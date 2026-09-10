@@ -216,6 +216,10 @@ public class ApplicationSubmitService {
       int attempt,
       long started,
       RuntimeException error) {
+    Integer httpStatus =
+        error instanceof RetryableIntegrationException retryable
+            ? retryable.getHttpStatus()
+            : null;
     activityService.record(
         activity(
             context,
@@ -223,7 +227,7 @@ public class ApplicationSubmitService {
             type,
             action,
             IntegrationActivityStatus.FAILED,
-            null,
+            httpStatus,
             elapsedMs(started),
             attempt,
             error.getMessage(),

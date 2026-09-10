@@ -42,7 +42,8 @@ public class CustomerVerificationClient {
                                       new RetryableIntegrationException(
                                           "Customer verification returned "
                                               + clientResponse.statusCode()
-                                              + (body.isBlank() ? "" : ": " + body)))))
+                                              + (body.isBlank() ? "" : ": " + body),
+                                          clientResponse.statusCode().value()))))
               .bodyToMono(VerifyResponse.class)
               .block();
 
@@ -57,7 +58,9 @@ public class CustomerVerificationClient {
     } catch (WebClientResponseException ex) {
       if (ex.getStatusCode().is5xxServerError()) {
         throw new RetryableIntegrationException(
-            "Customer verification returned " + ex.getStatusCode(), ex);
+            "Customer verification returned " + ex.getStatusCode(),
+            ex,
+            ex.getStatusCode().value());
       }
       if (isTimeout(ex)) {
         throw new RetryableIntegrationException("Customer verification request timed out", ex);

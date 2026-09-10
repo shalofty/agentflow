@@ -61,8 +61,12 @@ class CustomerVerificationClientTest {
 
     assertThatThrownBy(
             () -> client.verify(new VerifyCommand(UUID.randomUUID(), "corr-456")))
-        .isInstanceOf(RetryableIntegrationException.class)
-        .hasMessageContaining("500");
+        .isInstanceOfSatisfying(
+            RetryableIntegrationException.class,
+            ex -> {
+              assertThat(ex.getMessage()).contains("500");
+              assertThat(ex.getHttpStatus()).isEqualTo(500);
+            });
   }
 
   @Test
@@ -71,8 +75,12 @@ class CustomerVerificationClientTest {
 
     assertThatThrownBy(
             () -> client.verify(new VerifyCommand(UUID.randomUUID(), "corr-789")))
-        .isInstanceOf(RetryableIntegrationException.class)
-        .hasMessageContaining("503");
+        .isInstanceOfSatisfying(
+            RetryableIntegrationException.class,
+            ex -> {
+              assertThat(ex.getMessage()).contains("503");
+              assertThat(ex.getHttpStatus()).isEqualTo(503);
+            });
   }
 
   @Test

@@ -120,10 +120,16 @@ class ApplicationSubmitIT {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).containsEntry("status", "APPROVED");
-    assertThat(getActivities(appId))
-        .filteredOn(row -> row.get("integration").equals("CUSTOMER_VERIFICATION"))
+    var verificationActivities =
+        getActivities(appId).stream()
+            .filter(row -> row.get("integration").equals("CustomerVerification"))
+            .toList();
+    assertThat(verificationActivities)
         .extracting(row -> row.get("status"))
         .containsExactly("FAILED", "FAILED", "SUCCESS");
+    assertThat(verificationActivities)
+        .extracting(row -> row.get("httpStatus"))
+        .containsExactly(503, 500, 200);
   }
 
   @Test
