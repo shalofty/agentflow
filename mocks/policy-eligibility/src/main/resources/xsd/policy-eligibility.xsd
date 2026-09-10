@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://agentflow.com/policy-eligibility"
+           targetNamespace="http://agentflow.com/policy-eligibility"
+           elementFormDefault="qualified">
+
+  <xs:simpleType name="EligibilityDecision">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ELIGIBLE"/>
+      <xs:enumeration value="MANUAL_REVIEW"/>
+      <xs:enumeration value="INELIGIBLE"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="CheckEligibilityRequest">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="applicationId" type="xs:string"/>
+        <xs:element name="riskScore" type="xs:int"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="CheckEligibilityResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="applicationId" type="xs:string"/>
+        <xs:element name="decision" type="tns:EligibilityDecision"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

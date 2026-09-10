@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: policy-eligibility-mock
+
+server:
+  port: 8092
