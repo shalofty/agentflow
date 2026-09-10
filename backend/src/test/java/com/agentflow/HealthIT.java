@@ -47,4 +47,21 @@ class HealthIT {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
   }
+
+  @Test
+  void unknownApiPathReturnsNotFoundProblemDetail() {
+    var response = rest.getForEntity("/api/no-such-endpoint", Map.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(response.getBody().get("title")).isEqualTo("Not found");
+    assertThat(response.getBody().get("detail")).isEqualTo("No endpoint matches this request");
+  }
+
+  @Test
+  void invalidPathUuidReturnsBadRequest() {
+    var response = rest.getForEntity("/api/applications/not-a-uuid", Map.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody().get("title")).isEqualTo("Invalid request parameter");
+  }
 }
