@@ -35,11 +35,14 @@ export default function LandingPage() {
         <section>
           <h2>Stack</h2>
           <ul>
-            <li>Frontend: Vite + React (JavaScript)</li>
-            <li>Backend: Java, Spring Boot, Maven</li>
-            <li>Database: PostgreSQL with Flyway migrations</li>
+            <li>Frontend: Vite + React on Cloudflare Pages (with /api proxy)</li>
+            <li>Backend: Java 21, Spring Boot on Render Free</li>
+            <li>Database: Neon Free PostgreSQL with Flyway migrations</li>
             <li>Integrations: REST (WebClient) + SOAP (Spring-WS)</li>
-            <li>Mocks: Docker Compose services for external systems</li>
+            <li>
+              External systems: Cloudflare Workers (Customer Verification REST,
+              Policy Eligibility SOAP)
+            </li>
             <li>Tooling: Python CSV import, Postman collection</li>
           </ul>
         </section>
@@ -47,23 +50,38 @@ export default function LandingPage() {
         <section>
           <h2>Architecture</h2>
           <p>
-            A React SPA talks to a Spring Boot API over REST/JSON. The API
-            orchestrates customer and application workflows, persists state in
-            PostgreSQL, and calls outbound REST and SOAP mock services.
-            Workflow definitions are versioned JSON seeded into the database
-            and rendered by a shared form component (coming in later tasks).
+            This Pages site proxies <code>/api</code> to the Spring Boot API.
+            The API orchestrates customer and application workflows, persists
+            state in Neon PostgreSQL, and calls outbound REST and SOAP Worker
+            mocks with request-scoped demo scenarios and a shared service
+            secret. Workflow definitions are versioned JSON seeded into the
+            database and rendered by a shared dynamic form component.
           </p>
         </section>
 
         <section>
           <h2>How to demo</h2>
           <ol>
-            <li>Start PostgreSQL and mocks via Docker Compose.</li>
-            <li>Run the Spring Boot API on port 8080.</li>
-            <li>Run this frontend with <code>npm run dev</code> (port 5173).</li>
-            <li>Enter the portal, create a customer, then start a policy application.</li>
-            <li>Submit and inspect Integration Activity for troubleshooting.</li>
+            <li>
+              Enter the portal below. The first request after idle time may wait
+              while the free API wakes up — give it a moment if the page seems
+              slow.
+            </li>
+            <li>Create a customer, then start an Auto Policy application.</li>
+            <li>Complete the JSON-driven form and submit the application.</li>
+            <li>
+              Inspect Integration Activity for REST/SOAP calls, retries, and
+              outcomes.
+            </li>
+            <li>
+              Optional: use the demo failure controls (when enabled) to inject
+              REST 500, timeout, SOAP fault, or manual-review scenarios.
+            </li>
           </ol>
+          <p className="landing-note">
+            Local development still uses Docker Compose Postgres and Node/Spring
+            mocks; see the repository README for that path.
+          </p>
         </section>
 
         <div className="landing-cta">

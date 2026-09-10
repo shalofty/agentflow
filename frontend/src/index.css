@@ -105,6 +105,12 @@ code {
   padding-left: 1.25rem;
 }
 
+.landing-note {
+  margin-top: 0.75rem;
+  color: #71717a;
+  font-size: 0.9rem;
+}
+
 .landing-cta {
   margin-top: 2rem;
   padding-top: 1.5rem;
