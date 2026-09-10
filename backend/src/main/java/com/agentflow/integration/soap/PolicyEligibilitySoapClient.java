@@ -9,7 +9,7 @@ import javax.xml.transform.stream.StreamSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.ws.client.WebServiceFaultException;
-import org.springframework.ws.client.WebServiceTransportException;
+import org.springframework.ws.client.WebServiceIOException;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.soap.SoapMessage;
 
@@ -49,7 +49,7 @@ public class PolicyEligibilitySoapClient
     } catch (WebServiceFaultException ex) {
       throw new RetryableIntegrationException(
           "Policy eligibility SOAP fault: " + ex.getMessage(), ex);
-    } catch (WebServiceTransportException ex) {
+    } catch (WebServiceIOException ex) {
       throw new RetryableIntegrationException(
           "Policy eligibility SOAP transport failure: " + ex.getMessage(), ex);
     }

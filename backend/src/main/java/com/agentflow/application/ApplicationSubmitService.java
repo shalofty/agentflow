@@ -19,12 +19,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class ApplicationSubmitService {
+
+  private static final Logger log = LoggerFactory.getLogger(ApplicationSubmitService.class);
 
   private final ApplicationRepository applicationRepository;
   private final ApplicationDataRepository dataRepository;
@@ -67,23 +71,27 @@ public class ApplicationSubmitService {
   }
 
   public ApplicationResponse submit(UUID applicationId, String correlationId) {
+    log.info(
+        "application_submit_start correlationId={} applicationId={}",
+        correlationId,
+        applicationId);
     SubmitContext context = claimAndValidate(applicationId, correlationId);
     updateStatus(applicationId, ApplicationStatus.CUSTOMER_VERIFICATION);
 
     CustomerVerificationResult verification = verifyCustomer(context);
     if (verification == null) {
-      return updateStatus(applicationId, ApplicationStatus.INTEGRATION_FAILURE);
+      return complete(context, ApplicationStatus.INTEGRATION_FAILURE);
     }
     if (!verification.verified()) {
-      return updateStatus(applicationId, ApplicationStatus.MANUAL_REVIEW);
+      return complete(context, ApplicationStatus.MANUAL_REVIEW);
     }
 
     updateStatus(applicationId, ApplicationStatus.ELIGIBILITY_CHECK);
     EligibilityResult eligibility = checkEligibility(context, verification.riskScore());
     if (eligibility == null) {
-      return updateStatus(applicationId, ApplicationStatus.INTEGRATION_FAILURE);
+      return complete(context, ApplicationStatus.INTEGRATION_FAILURE);
     }
-    return updateStatus(applicationId, mapEligibility(eligibility));
+    return complete(context, mapEligibility(eligibility));
   }
 
   private SubmitContext claimAndValidate(UUID applicationId, String correlationId) {
@@ -159,6 +167,7 @@ public class ApplicationSubmitService {
                 null,
                 "customerId=" + context.customerId(),
                 "verified=" + result.verified() + ", riskScore=" + result.riskScore()));
+        logAttempt(context, "CustomerVerification", attempt, "SUCCESS", null);
         return result;
       } catch (RetryableIntegrationException ex) {
         recordFailure(context, "CustomerVerification", "REST", "POST /verify", attempt, started, ex);
@@ -197,6 +206,7 @@ public class ApplicationSubmitService {
                 null,
                 "applicationId=" + context.applicationId(),
                 "result=" + result));
+        logAttempt(context, "PolicyEligibility", attempt, "SUCCESS", null);
         return result;
       } catch (RetryableIntegrationException ex) {
         recordFailure(
@@ -240,6 +250,39 @@ public class ApplicationSubmitService {
                 ? "customerId=" + context.customerId()
                 : "applicationId=" + context.applicationId(),
             null));
+    logAttempt(context, name, attempt, "FAILED", error);
+  }
+
+  private void logAttempt(
+      SubmitContext context, String integration, int attempt, String result, RuntimeException error) {
+    if (error == null) {
+      log.info(
+          "integration_attempt_result correlationId={} applicationId={} integration={} attempt={} result={}",
+          context.correlationId(),
+          context.applicationId(),
+          integration,
+          attempt,
+          result);
+    } else {
+      log.info(
+          "integration_attempt_result correlationId={} applicationId={} integration={} attempt={} result={} errorType={}",
+          context.correlationId(),
+          context.applicationId(),
+          integration,
+          attempt,
+          result,
+          error.getClass().getSimpleName());
+    }
+  }
+
+  private ApplicationResponse complete(SubmitContext context, ApplicationStatus status) {
+    ApplicationResponse response = updateStatus(context.applicationId(), status);
+    log.info(
+        "application_submit_terminal correlationId={} applicationId={} status={}",
+        context.correlationId(),
+        context.applicationId(),
+        status);
+    return response;
   }
 
   private IntegrationActivity activity(

@@ -84,6 +84,11 @@ export default function NewApplicationPage() {
     async function startApplication() {
       setLoading(true)
       setError(null)
+      setApplication(null)
+      setDefinition(null)
+      setValues({})
+      setSaveError(null)
+      setSaveMessage(null)
       try {
         const created = await createApplication({ customerId, workflowKey })
         if (cancelled) {

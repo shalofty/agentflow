@@ -2,6 +2,7 @@ package com.agentflow.integration.soap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.springframework.ws.test.client.RequestMatchers.payload;
 import static org.springframework.ws.test.client.RequestMatchers.soapHeader;
 import static org.springframework.ws.test.client.ResponseCreators.withPayload;
@@ -10,6 +11,9 @@ import static org.springframework.ws.test.client.ResponseCreators.withServerOrRe
 import com.agentflow.integration.RetryableIntegrationException;
 import com.agentflow.integration.eligibility.EligibilityCommand;
 import com.agentflow.integration.eligibility.EligibilityResult;
+import com.sun.net.httpserver.HttpServer;
+import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -79,6 +83,49 @@ class PolicyEligibilitySoapClientTest {
                         APPLICATION_ID, UUID.randomUUID(), "corr-fault", 27)))
         .isInstanceOf(RetryableIntegrationException.class)
         .hasMessageContaining("SOAP fault");
+  }
+
+  @Test
+  void unavailableServiceTimesOutAsRetryableFailure() throws Exception {
+    HttpServer hangingServer = HttpServer.create(new InetSocketAddress(0), 0);
+    hangingServer.createContext(
+        "/ws",
+        exchange -> {
+          try {
+            Thread.sleep(5_000);
+          } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+          } finally {
+            exchange.close();
+          }
+        });
+    hangingServer.start();
+
+    try {
+      Jaxb2Marshaller marshaller = PolicyEligibilitySoapConfiguration.policyEligibilityMarshaller();
+      WebServiceTemplate timeoutTemplate =
+          new PolicyEligibilitySoapConfiguration()
+              .policyEligibilityWebServiceTemplate(
+                  marshaller,
+                  "http://localhost:" + hangingServer.getAddress().getPort() + "/ws",
+                  Duration.ofMillis(100),
+                  Duration.ofMillis(150));
+      PolicyEligibilitySoapClient timeoutClient =
+          new PolicyEligibilitySoapClient(timeoutTemplate);
+
+      assertTimeoutPreemptively(
+          Duration.ofSeconds(2),
+          () ->
+              assertThatThrownBy(
+                      () ->
+                          timeoutClient.check(
+                              new EligibilityCommand(
+                                  APPLICATION_ID, UUID.randomUUID(), "corr-timeout", 42)))
+                  .isInstanceOf(RetryableIntegrationException.class)
+                  .hasMessageContaining("transport failure"));
+    } finally {
+      hangingServer.stop(0);
+    }
   }
 
   private static Stream<Arguments> decisions() {

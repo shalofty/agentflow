@@ -34,7 +34,19 @@ function formatProtocolInfo(activity) {
 }
 
 function statusClass(status) {
-  return status === 'SUCCESS' ? 'status-badge status-success' : 'status-badge status-failed'
+  const variants = {
+    SUCCESS: 'status-success',
+    APPROVED: 'status-success',
+    FAILED: 'status-failed',
+    INTEGRATION_FAILURE: 'status-failed',
+    INELIGIBLE: 'status-failed',
+    MANUAL_REVIEW: 'status-warning',
+    DRAFT: 'status-neutral',
+    SUBMITTED: 'status-info',
+    CUSTOMER_VERIFICATION: 'status-info',
+    ELIGIBILITY_CHECK: 'status-info',
+  }
+  return `status-badge ${variants[status] ?? 'status-neutral'}`
 }
 
 export default function ApplicationDetailPage() {
