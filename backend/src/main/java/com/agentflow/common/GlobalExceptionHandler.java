@@ -2,6 +2,7 @@ package com.agentflow.common;
 
 import com.agentflow.customer.CustomerNotFoundException;
 import com.agentflow.customer.DuplicateEmailException;
+import com.agentflow.workflow.WorkflowNotFoundException;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,14 @@ public class GlobalExceptionHandler {
     ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
     pd.setTitle("Duplicate email");
     pd.setDetail("A customer with email " + ex.getEmail() + " already exists");
+    return pd;
+  }
+
+  @ExceptionHandler(WorkflowNotFoundException.class)
+  ProblemDetail onWorkflowNotFound(WorkflowNotFoundException ex) {
+    ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
+    pd.setTitle("Workflow not found");
+    pd.setDetail("No active workflow definition for key " + ex.getWorkflowKey());
     return pd;
   }
 }
