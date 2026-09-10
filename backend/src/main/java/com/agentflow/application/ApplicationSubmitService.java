@@ -79,7 +79,7 @@ public class ApplicationSubmitService {
     }
 
     updateStatus(applicationId, ApplicationStatus.ELIGIBILITY_CHECK);
-    EligibilityResult eligibility = checkEligibility(context);
+    EligibilityResult eligibility = checkEligibility(context, verification.riskScore());
     if (eligibility == null) {
       return updateStatus(applicationId, ApplicationStatus.INTEGRATION_FAILURE);
     }
@@ -173,20 +173,23 @@ public class ApplicationSubmitService {
     return null;
   }
 
-  private EligibilityResult checkEligibility(SubmitContext context) {
+  private EligibilityResult checkEligibility(SubmitContext context, int riskScore) {
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       long started = System.nanoTime();
       try {
         EligibilityResult result =
             eligibilityClient.check(
                 new EligibilityCommand(
-                    context.applicationId(), context.customerId(), context.correlationId()));
+                    context.applicationId(),
+                    context.customerId(),
+                    context.correlationId(),
+                    riskScore));
         activityService.record(
             activity(
                 context,
                 "PolicyEligibility",
-                "INTERNAL",
-                "check",
+                "SOAP",
+                "CheckEligibility",
                 IntegrationActivityStatus.SUCCESS,
                 null,
                 elapsedMs(started),
@@ -196,12 +199,14 @@ public class ApplicationSubmitService {
                 "result=" + result));
         return result;
       } catch (RetryableIntegrationException ex) {
-        recordFailure(context, "PolicyEligibility", "INTERNAL", "check", attempt, started, ex);
+        recordFailure(
+            context, "PolicyEligibility", "SOAP", "CheckEligibility", attempt, started, ex);
         if (attempt < maxAttempts) {
           backoff();
         }
       } catch (RuntimeException ex) {
-        recordFailure(context, "PolicyEligibility", "INTERNAL", "check", attempt, started, ex);
+        recordFailure(
+            context, "PolicyEligibility", "SOAP", "CheckEligibility", attempt, started, ex);
         return null;
       }
     }

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.agentflow.integration.RetryableIntegrationException;
 import com.agentflow.integration.eligibility.EligibilityResult;
 import com.agentflow.integration.eligibility.PolicyEligibilityClient;
 import java.io.IOException;
@@ -130,6 +131,40 @@ class ApplicationSubmitIT {
     assertThat(verificationActivities)
         .extracting(row -> row.get("httpStatus"))
         .containsExactly(503, 500, 200);
+  }
+
+  @Test
+  void exhaustedSoapFaultsEndIntegrationFailureWithFailedActivities() {
+    UUID appId = createValidDraft();
+    when(eligibilityClient.check(org.mockito.ArgumentMatchers.any()))
+        .thenThrow(new RetryableIntegrationException("Policy eligibility SOAP fault"));
+    verificationServer.enqueue(
+        new MockResponse()
+            .setResponseCode(200)
+            .setHeader("Content-Type", "application/json")
+            .setBody(
+                """
+                {"customerId":"%s","verified":true,"riskScore":27}
+                """
+                    .formatted(getApplication(appId).get("customerId"))));
+
+    var response = rest.postForEntity("/api/applications/" + appId + "/submit", null, Map.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).containsEntry("status", "INTEGRATION_FAILURE");
+    var eligibilityActivities =
+        getActivities(appId).stream()
+            .filter(row -> row.get("integration").equals("PolicyEligibility"))
+            .toList();
+    assertThat(eligibilityActivities)
+        .extracting(row -> row.get("status"))
+        .containsExactly("FAILED", "FAILED", "FAILED");
+    assertThat(eligibilityActivities)
+        .extracting(row -> row.get("integrationType"))
+        .containsOnly("SOAP");
+    assertThat(eligibilityActivities)
+        .extracting(row -> row.get("attempt"))
+        .containsExactly(1, 2, 3);
   }
 
   @Test
