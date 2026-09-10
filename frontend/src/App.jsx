@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import ApplicationDetailPage from './pages/ApplicationDetailPage'
 import CustomersPage from './pages/CustomersPage'
 import LandingPage from './pages/LandingPage'
 import NewApplicationPage from './pages/NewApplicationPage'
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/portal" element={<PortalLayout />}>
           <Route path="customers" element={<CustomersPage />} />
           <Route path="applications/new" element={<NewApplicationPage />} />
+          <Route path="applications/:id" element={<ApplicationDetailPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

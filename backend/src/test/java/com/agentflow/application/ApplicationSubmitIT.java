@@ -137,6 +137,12 @@ class ApplicationSubmitIT {
     assertThat(verificationActivities)
         .extracting(row -> row.get("httpStatus"))
         .containsExactly(503, 500, 200);
+    assertThat(verificationActivities)
+        .extracting(row -> row.get("attempt"))
+        .containsExactly(1, 2, 3);
+    assertThat(verificationActivities)
+        .extracting(row -> row.get("durationMs"))
+        .allMatch(duration -> duration instanceof Number && ((Number) duration).longValue() >= 0);
   }
 
   @Test

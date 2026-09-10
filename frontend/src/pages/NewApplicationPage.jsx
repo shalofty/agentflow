@@ -109,7 +109,7 @@ export default function NewApplicationPage() {
       await saveApplicationData(application.id, values)
       const submitted = await submitApplication(application.id)
       setApplication(submitted)
-      setSaveMessage(`Application submitted: ${submitted.status}.`)
+      setSaveMessage(`Application submitted: ${submitted.status}. View integration activity below.`)
     } catch (err) {
       setSaveError(formatError(err))
     } finally {
@@ -144,7 +144,12 @@ export default function NewApplicationPage() {
 
       {saveMessage && (
         <div className="alert alert-success" role="status">
-          {saveMessage}
+          {saveMessage}{' '}
+          {application.status !== 'DRAFT' && (
+            <Link to={`/portal/applications/${application.id}`}>
+              View application detail
+            </Link>
+          )}
         </div>
       )}
 

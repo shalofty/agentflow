@@ -72,3 +72,19 @@ export async function submitApplication(applicationId) {
   }
   return response.json()
 }
+
+export async function getApplication(applicationId) {
+  const response = await fetch(`/api/applications/${applicationId}`)
+  if (!response.ok) {
+    throw await parseError(response)
+  }
+  return response.json()
+}
+
+export async function getActivities(applicationId) {
+  const response = await fetch(`/api/applications/${applicationId}/activities`)
+  if (!response.ok) {
+    throw await parseError(response)
+  }
+  return response.json()
+}
