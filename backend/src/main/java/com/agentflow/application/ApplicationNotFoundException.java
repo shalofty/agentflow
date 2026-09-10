@@ -6,7 +6,7 @@ public class ApplicationNotFoundException extends RuntimeException {
 
   private final UUID id;
 
-  ApplicationNotFoundException(UUID id) {
+  public ApplicationNotFoundException(UUID id) {
     super("Application not found");
     this.id = id;
   }

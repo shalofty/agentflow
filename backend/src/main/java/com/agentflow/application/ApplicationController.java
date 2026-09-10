@@ -1,7 +1,12 @@
 package com.agentflow.application;
 
+import com.agentflow.common.CorrelationIdFilter;
+import com.agentflow.integration.activity.IntegrationActivityResponse;
+import com.agentflow.integration.activity.IntegrationActivityService;
 import com.agentflow.workflow.WorkflowDetailResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,9 +23,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApplicationController {
 
   private final ApplicationService service;
+  private final ApplicationSubmitService submitService;
+  private final IntegrationActivityService activityService;
 
-  public ApplicationController(ApplicationService service) {
+  public ApplicationController(
+      ApplicationService service,
+      ApplicationSubmitService submitService,
+      IntegrationActivityService activityService) {
     this.service = service;
+    this.submitService = submitService;
+    this.activityService = activityService;
   }
 
   @PostMapping
@@ -43,5 +55,16 @@ public class ApplicationController {
   public ApplicationResponse saveData(
       @PathVariable UUID id, @Valid @RequestBody ApplicationDataUpdateRequest request) {
     return service.saveData(id, request.payload());
+  }
+
+  @PostMapping("/{id}/submit")
+  public ApplicationResponse submit(@PathVariable UUID id, HttpServletRequest request) {
+    return submitService.submit(
+        id, (String) request.getAttribute(CorrelationIdFilter.ATTRIBUTE));
+  }
+
+  @GetMapping("/{id}/activities")
+  public List<IntegrationActivityResponse> activities(@PathVariable UUID id) {
+    return activityService.list(id);
   }
 }

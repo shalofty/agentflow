@@ -4,6 +4,7 @@ import {
   createApplication,
   getApplicationDefinition,
   saveApplicationData,
+  submitApplication,
 } from '../api/client'
 import DynamicForm from '../components/DynamicForm'
 
@@ -29,6 +30,7 @@ export default function NewApplicationPage() {
   const [error, setError] = useState(null)
   const [saveError, setSaveError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [saveMessage, setSaveMessage] = useState(null)
 
   function handleValuesChange(nextValues) {
@@ -96,6 +98,25 @@ export default function NewApplicationPage() {
     }
   }
 
+  async function handleSubmit() {
+    if (!application) {
+      return
+    }
+    setSubmitting(true)
+    setSaveMessage(null)
+    setSaveError(null)
+    try {
+      await saveApplicationData(application.id, values)
+      const submitted = await submitApplication(application.id)
+      setApplication(submitted)
+      setSaveMessage(`Application submitted: ${submitted.status}.`)
+    } catch (err) {
+      setSaveError(formatError(err))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   if (loading) {
     return <p>Loading application…</p>
   }
@@ -149,6 +170,14 @@ export default function NewApplicationPage() {
           disabled={saving}
         >
           {saving ? 'Saving…' : 'Save draft'}
+        </button>
+        <button
+          type="button"
+          className="button button-primary"
+          onClick={handleSubmit}
+          disabled={saving || submitting || application.status !== 'DRAFT'}
+        >
+          {submitting ? 'Submitting…' : 'Submit application'}
         </button>
         <Link to="/portal/customers" className="button">
           Back to customers

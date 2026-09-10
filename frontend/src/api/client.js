@@ -62,3 +62,13 @@ export async function saveApplicationData(applicationId, payload) {
   }
   return response.json()
 }
+
+export async function submitApplication(applicationId) {
+  const response = await fetch(`/api/applications/${applicationId}/submit`, {
+    method: 'POST',
+  })
+  if (!response.ok) {
+    throw await parseError(response)
+  }
+  return response.json()
+}

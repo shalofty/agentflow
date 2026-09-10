@@ -3,6 +3,7 @@ package com.agentflow.common;
 import com.agentflow.application.ApplicationDataValidationException;
 import com.agentflow.application.ApplicationNotDraftException;
 import com.agentflow.application.ApplicationNotFoundException;
+import com.agentflow.application.ApplicationStateTransitionException;
 import com.agentflow.customer.CustomerNotFoundException;
 import com.agentflow.customer.DuplicateEmailException;
 import com.agentflow.workflow.WorkflowNotFoundException;
@@ -77,6 +78,14 @@ public class GlobalExceptionHandler {
     pd.setTitle("Application not in draft");
     pd.setDetail(
         "Application " + ex.getId() + " cannot be modified in status " + ex.getStatus());
+    return pd;
+  }
+
+  @ExceptionHandler(ApplicationStateTransitionException.class)
+  ProblemDetail onApplicationStateTransition(ApplicationStateTransitionException ex) {
+    ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+    pd.setTitle("Application cannot be submitted");
+    pd.setDetail(ex.getMessage());
     return pd;
   }
 }

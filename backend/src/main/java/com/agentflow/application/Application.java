@@ -90,6 +90,14 @@ public class Application {
     this.status = status;
   }
 
+  public void setCorrelationId(String correlationId) {
+    this.correlationId = correlationId;
+  }
+
+  public void setSubmittedAt(Instant submittedAt) {
+    this.submittedAt = submittedAt;
+  }
+
   public void setUpdatedAt(Instant updatedAt) {
     this.updatedAt = updatedAt;
   }
