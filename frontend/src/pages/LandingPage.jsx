@@ -1,14 +1,43 @@
 import { Link } from 'react-router-dom'
 
+const REPO_URL = 'https://github.com/shalofty/agentflow'
+
 export default function LandingPage() {
   return (
     <div className="landing">
       <header className="landing-header">
         <h1>AgentFlow</h1>
         <p className="tagline">Insurance agent implementation portal</p>
+        <div className="landing-cta landing-cta-top">
+          <Link to="/portal/customers" className="button button-primary">
+            Try demo
+          </Link>
+          <a
+            href={REPO_URL}
+            className="button"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View source
+          </a>
+        </div>
+        <p className="landing-note">
+          Shared public demo — use synthetic data only. Free-tier API may take
+          up to a minute to wake after idle.
+        </p>
       </header>
 
       <main className="landing-main">
+        <section>
+          <h2>Expected walkthrough</h2>
+          <ol>
+            <li>Enter the portal and create a synthetic customer (or fill sample data).</li>
+            <li>Start an Auto Policy, save a draft, reload, and resume the same application.</li>
+            <li>Submit and inspect REST + SOAP integration activity on the detail page.</li>
+            <li>Optional: start a Home Policy and inject a SOAP fault to see retries.</li>
+          </ol>
+        </section>
+
         <section>
           <h2>What it is</h2>
           <p>
@@ -50,12 +79,11 @@ export default function LandingPage() {
         <section>
           <h2>Architecture</h2>
           <p>
-            This Pages site proxies <code>/api</code> to the Spring Boot API.
-            The API orchestrates customer and application workflows, persists
-            state in Neon PostgreSQL, and calls outbound REST and SOAP Worker
-            mocks with request-scoped demo scenarios and a shared service
-            secret. Workflow definitions are versioned JSON seeded into the
-            database and rendered by a shared dynamic form component.
+            Browser → Cloudflare Pages (<code>/api</code> proxy) → Render Free
+            Spring Boot API → Neon PostgreSQL, with outbound calls from the API
+            to Cloudflare REST and SOAP Workers. Workflow definitions are
+            versioned JSON seeded into the database and rendered by a shared
+            dynamic form component.
           </p>
         </section>
 
@@ -63,11 +91,10 @@ export default function LandingPage() {
           <h2>How to demo</h2>
           <ol>
             <li>
-              Enter the portal below. The first request after idle time may wait
-              while the free API wakes up — give it a moment if the page seems
-              slow.
+              Use <strong>Try demo</strong> above. The first request after idle
+              time may wait while the free API wakes up.
             </li>
-            <li>Create a customer, then start an Auto Policy application.</li>
+            <li>Create a synthetic customer, then start an Auto Policy application.</li>
             <li>Complete the JSON-driven form and submit the application.</li>
             <li>
               Inspect Integration Activity for REST/SOAP calls, retries, and
@@ -86,8 +113,16 @@ export default function LandingPage() {
 
         <div className="landing-cta">
           <Link to="/portal/customers" className="button button-primary">
-            Enter portal
+            Try demo
           </Link>
+          <a
+            href={REPO_URL}
+            className="button"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View source
+          </a>
         </div>
       </main>
     </div>

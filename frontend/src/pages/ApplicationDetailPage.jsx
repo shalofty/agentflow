@@ -1,16 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getActivities, getApplication } from '../api/client'
-
-function formatError(error) {
-  if (error.problem?.errors) {
-    const fields = Object.entries(error.problem.errors)
-      .map(([field, message]) => `${field}: ${message}`)
-      .join('; ')
-    return `${error.message} (${fields})`
-  }
-  return error.message
-}
+import { formatApiError, getActivities, getApplication } from '../api/client'
 
 function formatTimestamp(value) {
   if (!value) {
@@ -49,6 +39,65 @@ function statusClass(status) {
   return `status-badge ${variants[status] ?? 'status-neutral'}`
 }
 
+function ActivityCard({ activity }) {
+  const [open, setOpen] = useState(Boolean(activity.errorMessage))
+  const detailsId = `activity-${activity.id}-details`
+
+  return (
+    <article className="activity-card">
+      <button
+        type="button"
+        className="activity-card-toggle"
+        aria-expanded={open}
+        aria-controls={detailsId}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="activity-card-summary">
+          <span className={statusClass(activity.status)}>{activity.status}</span>
+          <strong>{activity.integration}</strong>
+          <span className="muted">
+            {activity.integrationType} · attempt {activity.attempt} ·{' '}
+            {activity.durationMs} ms
+          </span>
+        </span>
+        <span className="activity-card-chevron">{open ? 'Hide' : 'Details'}</span>
+      </button>
+      {open && (
+        <div id={detailsId} className="activity-card-body">
+          <dl className="detail-grid">
+            <div>
+              <dt>Timestamp</dt>
+              <dd>{formatTimestamp(activity.createdAt)}</dd>
+            </div>
+            <div>
+              <dt>HTTP / SOAP</dt>
+              <dd>{formatProtocolInfo(activity)}</dd>
+            </div>
+            <div>
+              <dt>Action</dt>
+              <dd>{activity.action || '—'}</dd>
+            </div>
+            <div>
+              <dt>Correlation</dt>
+              <dd>{activity.correlationId || '—'}</dd>
+            </div>
+          </dl>
+          {activity.errorMessage && (
+            <pre className="activity-error-block">{activity.errorMessage}</pre>
+          )}
+          {(activity.requestSummary || activity.responseSummary) &&
+            activity.integrationType === 'REST' && (
+              <p className="muted">
+                {activity.requestSummary || ''}
+                {activity.responseSummary ? ` → ${activity.responseSummary}` : ''}
+              </p>
+            )}
+        </div>
+      )}
+    </article>
+  )
+}
+
 export default function ApplicationDetailPage() {
   const { id } = useParams()
   const [application, setApplication] = useState(null)
@@ -73,7 +122,7 @@ export default function ApplicationDetailPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(formatError(err))
+          setError(formatApiError(err))
         }
       } finally {
         if (!cancelled) {
@@ -150,47 +199,28 @@ export default function ApplicationDetailPage() {
         </dl>
       </section>
 
-      <section className="panel">
+      <section className="panel" id="integration-activity">
         <h2>Integration activity</h2>
         {activities.length === 0 ? (
           <p>No integration activity yet.</p>
         ) : (
-          <div className="table-scroll">
-            <table className="data-table activity-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Integration</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Attempt</th>
-                  <th>HTTP / SOAP</th>
-                  <th>Duration</th>
-                  <th>Error</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activities.map((activity) => (
-                  <tr key={activity.id}>
-                    <td>{formatTimestamp(activity.createdAt)}</td>
-                    <td>{activity.integration}</td>
-                    <td>{activity.integrationType}</td>
-                    <td>
-                      <span className={statusClass(activity.status)}>{activity.status}</span>
-                    </td>
-                    <td>{activity.attempt}</td>
-                    <td>{formatProtocolInfo(activity)}</td>
-                    <td>{activity.durationMs} ms</td>
-                    <td className="error-cell">{activity.errorMessage || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="activity-list">
+            {activities.map((activity) => (
+              <ActivityCard key={activity.id} activity={activity} />
+            ))}
           </div>
         )}
       </section>
 
       <div className="form-actions">
+        {application.status === 'DRAFT' && (
+          <Link
+            to={`/portal/applications/${application.id}/edit`}
+            className="button button-primary"
+          >
+            Resume draft
+          </Link>
+        )}
         <Link to="/portal/customers" className="button">
           Back to customers
         </Link>

@@ -31,11 +31,12 @@ describe('DynamicForm', () => {
     render(
       <DynamicForm definition={autoFixture} values={{}} onChange={() => {}} />,
     )
-    expect(screen.getByLabelText(/^VIN$/i)).toBeRequired()
+    expect(screen.getByLabelText(/VIN/i)).toBeRequired()
     expect(screen.getByLabelText(/Vehicle Year/i)).toBeRequired()
     expect(screen.getByLabelText(/Coverage Type/i)).toBeRequired()
     expect(screen.getByLabelText(/Effective Date/i)).toBeRequired()
     expect(screen.getByLabelText(/Vehicle kept in garage/i)).not.toBeRequired()
+    expect(screen.getByText('(optional)')).toBeInTheDocument()
   })
 
   it('renders home policy fields from fixture without a dedicated form component', () => {

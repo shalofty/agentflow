@@ -73,7 +73,11 @@ public class GlobalExceptionHandler {
     Map<String, String> errors =
         ex.getErrors().stream()
             .collect(Collectors.toMap(e -> e.field(), e -> e.message(), (a, b) -> a));
+    Map<String, String> errorLabels =
+        ex.getErrors().stream()
+            .collect(Collectors.toMap(e -> e.field(), e -> e.displayLabel(), (a, b) -> a));
     pd.setProperty("errors", errors);
+    pd.setProperty("errorLabels", errorLabels);
     return pd;
   }
 

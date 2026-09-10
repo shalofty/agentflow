@@ -4,6 +4,36 @@ AgentFlow is a portfolio workflow application for creating insurance-policy appl
 
 The MVP includes Auto and Home policy workflows, a React portal, a Spring Boot API, PostgreSQL persistence, two runnable downstream mocks, a Python customer importer, and a Postman demonstration suite.
 
+## Live demo
+
+| | |
+| --- | --- |
+| **Try the demo** | https://agentflow-95x.pages.dev/ |
+| **Source** | https://github.com/shalofty/agentflow |
+| **API (Render Free)** | https://agentflow-api-1b7a.onrender.com |
+
+**Shared public demo — use synthetic data only.** There is no sign-in. Prefer the portal’s “Fill sample data” control. The free API may take up to a minute to wake after idle; the portal polls `/api/health` before loading business data.
+
+### Quick walkthrough
+
+1. Open the live site → **Try demo**.
+2. Create a synthetic customer (or fill sample data).
+3. Start an Auto Policy, save a draft, reload, and **Resume** the same application from the customer list.
+4. Submit and open application detail to inspect REST + SOAP integration activity.
+5. Optional: start a Home Policy and use demo failure injection (`soap-fault`) to see three recorded SOAP attempts and `INTEGRATION_FAILURE`.
+
+Cloud path:
+
+```text
+Browser
+  → Cloudflare Pages (SPA + /api proxy)
+    → Render Free Spring Boot API
+      → Neon Free PostgreSQL
+      → Cloudflare Workers (REST + SOAP mocks)
+```
+
+Local development still uses Docker Compose Postgres and Node/Spring mocks (below). Deployment notes: `deploy/DEPLOYMENT.md`.
+
 ## Architecture
 
 ```mermaid
@@ -40,7 +70,7 @@ A submission claims a `DRAFT` application in a short database transaction, then 
 2. Policy eligibility through Spring-WS, JAXB mapping, and SOAP/XML.
 3. A final status of `APPROVED`, `MANUAL_REVIEW`, `INELIGIBLE`, or `INTEGRATION_FAILURE`.
 
-Retryable integration failures use up to three attempts with a short backoff. Every attempt is committed independently as a `SUCCESS` or `FAILED` Integration Activity, so evidence survives a failed submission. Submitting an already-claimed application returns `409 Conflict`, protecting downstream systems from double-clicks and accidental resubmission.
+Draft saves and submission both use a pessimistic row lock so a late save cannot overwrite an application after it has been claimed. Retryable integration failures use up to three attempts with a short backoff. Every attempt is committed independently as a `SUCCESS` or `FAILED` Integration Activity, so evidence survives a failed submission. Submitting an already-claimed application returns `409 Conflict`, protecting downstream systems from double-clicks and accidental resubmission.
 
 The SOAP artifacts are intentionally visible:
 
@@ -169,4 +199,4 @@ postman/                       API collection and local environment
 docker-compose.yml             PostgreSQL and both downstream mocks
 ```
 
-The scope is intentionally a modular monolith with no authentication, Kafka, or distributed idempotency layer. That keeps the portfolio focused on inspectable workflow and integration behavior.
+The scope is intentionally a modular monolith with no authentication, Kafka, or distributed idempotency layer. That keeps the portfolio focused on inspectable workflow and integration behavior. The public demo labels synthetic-data boundaries and applies a lightweight customer-creation rate limit; it is not an identity platform.

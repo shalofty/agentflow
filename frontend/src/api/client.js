@@ -1,5 +1,14 @@
 async function parseError(response) {
-  const body = await response.json().catch(() => ({}))
+  const contentType = response.headers.get('content-type') || ''
+  let body = {}
+  if (contentType.includes('application/json') || contentType.includes('problem+json')) {
+    body = await response.json().catch(() => ({}))
+  } else {
+    const text = await response.text().catch(() => '')
+    if (text) {
+      body = { detail: text.slice(0, 200) }
+    }
+  }
   const message =
     body.detail ||
     body.title ||
@@ -11,67 +20,75 @@ async function parseError(response) {
   return error
 }
 
-export async function listCustomers() {
-  const response = await fetch('/api/customers')
+async function request(path, options = {}) {
+  const response = await fetch(path, options)
+  if (!response.ok) {
+    throw await parseError(response)
+  }
+  if (response.status === 204) {
+    return null
+  }
+  const contentType = response.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) {
+    return null
+  }
+  return response.json()
+}
+
+export async function getHealth({ signal } = {}) {
+  const response = await fetch('/api/health', { signal })
   if (!response.ok) {
     throw await parseError(response)
   }
   return response.json()
 }
 
+export async function listCustomers() {
+  return request('/api/customers')
+}
+
 export async function createCustomer(customer) {
-  const response = await fetch('/api/customers', {
+  return request('/api/customers', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(customer),
   })
-  if (!response.ok) {
-    throw await parseError(response)
-  }
-  return response.json()
+}
+
+export async function listApplications(customerId) {
+  const params = new URLSearchParams({ customerId })
+  return request(`/api/applications?${params}`)
 }
 
 export async function createApplication({ customerId, workflowKey }) {
-  const response = await fetch('/api/applications', {
+  return request('/api/applications', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ customerId, workflowKey }),
   })
-  if (!response.ok) {
-    throw await parseError(response)
-  }
-  return response.json()
 }
 
 export async function getApplicationDefinition(applicationId) {
-  const response = await fetch(`/api/applications/${applicationId}/definition`)
-  if (!response.ok) {
-    throw await parseError(response)
-  }
-  return response.json()
+  return request(`/api/applications/${applicationId}/definition`)
+}
+
+export async function getApplicationData(applicationId) {
+  return request(`/api/applications/${applicationId}/data`)
 }
 
 export async function saveApplicationData(applicationId, payload) {
-  const response = await fetch(`/api/applications/${applicationId}/data`, {
+  return request(`/api/applications/${applicationId}/data`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ payload }),
   })
-  if (!response.ok) {
-    throw await parseError(response)
-  }
-  return response.json()
 }
 
 export async function submitApplication(applicationId, demoScenario) {
-  const response = await fetch(`/api/applications/${applicationId}/submit`, {
+  return request(`/api/applications/${applicationId}/submit`, {
     method: 'POST',
     headers: demoScenario ? { 'X-Demo-Scenario': demoScenario } : {},
   })
-  if (!response.ok) {
-    throw await parseError(response)
-  }
-  return response.json()
 }
 
 export async function getDemoConfiguration() {
@@ -86,17 +103,28 @@ export async function getDemoConfiguration() {
 }
 
 export async function getApplication(applicationId) {
-  const response = await fetch(`/api/applications/${applicationId}`)
-  if (!response.ok) {
-    throw await parseError(response)
-  }
-  return response.json()
+  return request(`/api/applications/${applicationId}`)
 }
 
 export async function getActivities(applicationId) {
-  const response = await fetch(`/api/applications/${applicationId}/activities`)
-  if (!response.ok) {
-    throw await parseError(response)
+  return request(`/api/applications/${applicationId}/activities`)
+}
+
+export function formatApiError(error) {
+  const errors = error.problem?.errors
+  const labels = error.problem?.errorLabels || {}
+  if (errors && typeof errors === 'object') {
+    const fields = Object.entries(errors)
+      .map(([field, message]) => `${labels[field] || field}: ${message}`)
+      .join('; ')
+    return `${error.message} (${fields})`
   }
-  return response.json()
+  return error.message
+}
+
+export function fieldErrorsFromProblem(problem) {
+  if (!problem?.errors) {
+    return {}
+  }
+  return { ...problem.errors }
 }

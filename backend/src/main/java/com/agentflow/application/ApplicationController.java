@@ -46,9 +46,20 @@ public class ApplicationController {
     return service.getById(id);
   }
 
+  @GetMapping
+  public List<ApplicationResponse> listByCustomer(
+      @org.springframework.web.bind.annotation.RequestParam UUID customerId) {
+    return service.listByCustomer(customerId);
+  }
+
   @GetMapping("/{id}/definition")
   public WorkflowDetailResponse getDefinition(@PathVariable UUID id) {
     return service.getPinnedDefinition(id);
+  }
+
+  @GetMapping("/{id}/data")
+  public ApplicationDataResponse getData(@PathVariable UUID id) {
+    return service.getData(id);
   }
 
   @PutMapping("/{id}/data")
