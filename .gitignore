@@ -30,3 +30,6 @@ scripts/python/.venv/
 
 # Cloudflare / Wrangler
 .wrangler/
+
+.deploy-env
+.deploy-env.json
